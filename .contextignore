@@ -1,0 +1,8 @@
+# Files excluded from AI context
+# Managed by Context Gating extension
+
+reports
+reports/Context_graphs_conversation.md
+reports/bibliography_revisions
+reports/context_graphs_article_review.md
+reports/context_graphs_state_of_technology.md

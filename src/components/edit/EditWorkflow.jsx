@@ -1,0 +1,152 @@
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import useEditorStore from '../../store/useEditorStore';
+import useAppStore from '../../store/useAppStore';
+import ChatPanel from '../chat/ChatPanel';
+import FilePanel from './FilePanel';
+import MarkdownEditor from './MarkdownEditor';
+import { DIMENSION_KEYS } from '../../data/dimensions';
+
+const LEFT_TABS = [
+  { key: 'chat', label: 'Chat' },
+  { key: 'files', label: 'Files' },
+  { key: 'variables', label: 'Variables' },
+];
+
+export default function EditWorkflow() {
+  const leftPanelTab = useEditorStore((s) => s.leftPanelTab);
+  const setLeftPanelTab = useEditorStore((s) => s.setLeftPanelTab);
+
+  // --- Resizable left panel ---
+  const [leftWidth, setLeftWidth] = useState(320);
+  const containerRef = useRef(null);
+  const dragging = useRef(false);
+
+  const handleDividerDown = useCallback((e) => {
+    e.preventDefault();
+    dragging.current = true;
+  }, []);
+
+  useEffect(() => {
+    const onMouseMove = (e) => {
+      if (!dragging.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      setLeftWidth(Math.min(rect.width * 0.5, Math.max(240, px)));
+    };
+    const onMouseUp = () => { dragging.current = false; };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+  }, []);
+
+  return (
+    <div ref={containerRef} className="flex h-full">
+      {/* Left panel */}
+      <div style={{ width: leftWidth }} className="shrink-0 flex flex-col min-h-0 bg-white border-r border-black/15">
+        {/* Tab bar */}
+        <div className="flex border-b border-black/15 shrink-0">
+          {LEFT_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setLeftPanelTab(tab.key)}
+              className={`flex-1 px-3 py-2 text-xs font-semibold transition-colors ${
+                leftPanelTab === tab.key
+                  ? 'bg-white text-black border-b-2 border-black'
+                  : 'bg-gray-50 text-gray-500 hover:text-black hover:bg-gray-100'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Panel content */}
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          {leftPanelTab === 'chat' && <ChatPanel />}
+          {leftPanelTab === 'files' && <FilePanel />}
+          {leftPanelTab === 'variables' && <VariablesPanel />}
+        </div>
+      </div>
+
+      {/* Drag divider */}
+      <div
+        onMouseDown={handleDividerDown}
+        className="w-1.5 cursor-col-resize bg-purple-500/30 hover:bg-purple-500/60 flex-shrink-0 transition-colors"
+      />
+
+      {/* Editor area */}
+      <div className="flex-1 min-w-0 flex flex-col bg-slate-900">
+        <MarkdownEditor />
+      </div>
+    </div>
+  );
+}
+
+function VariablesPanel() {
+  const chapters = useAppStore((s) => s.chapters);
+  const scaffoldBeats = useAppStore((s) => s.scaffoldBeats);
+  const selectedGenre = useAppStore((s) => s.selectedGenre);
+
+  const hasChapters = chapters.length > 0;
+  const hasBeats = scaffoldBeats.length > 0;
+
+  return (
+    <div className="p-3 overflow-y-auto text-sm text-black">
+      <h3 className="text-xs font-bold text-gray-500 uppercase mb-3">Chapter Variables</h3>
+
+      {!hasChapters && !hasBeats && (
+        <p className="text-gray-400 text-xs">
+          No chapter data yet. Add chapters in the Analyze workflow or beats in Scaffold to see dimension targets here.
+        </p>
+      )}
+
+      {hasChapters && (
+        <div className="space-y-2 mb-4">
+          <div className="text-[10px] font-bold text-gray-400 uppercase">Analyzed Chapters</div>
+          {chapters.map((ch, i) => {
+            const scores = ch.userScores || ch.aiScores;
+            return (
+              <div key={ch.id} className="bg-gray-50 rounded p-2">
+                <div className="font-medium text-xs mb-1">
+                  {i + 1}. {ch.title || 'Untitled'}
+                </div>
+                {scores && (
+                  <div className="grid grid-cols-3 gap-x-2 gap-y-0.5 text-[10px] text-gray-500">
+                    {DIMENSION_KEYS.map((k) => (
+                      <span key={k}>
+                        {k}: <span className="font-mono">{scores[k] != null ? Number(scores[k]).toFixed(1) : '-'}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {hasBeats && (
+        <div className="space-y-2">
+          <div className="text-[10px] font-bold text-gray-400 uppercase">Scaffold Beats</div>
+          {scaffoldBeats.map((beat, i) => (
+            <div key={beat.id} className="bg-gray-50 rounded p-2">
+              <div className="font-medium text-xs mb-1">
+                {i + 1}. {beat.label || 'Untitled'} <span className="text-gray-400">({beat.time}%)</span>
+              </div>
+              <div className="grid grid-cols-3 gap-x-2 gap-y-0.5 text-[10px] text-gray-500">
+                {DIMENSION_KEYS.map((k) => (
+                  <span key={k}>
+                    {k}: <span className="font-mono">{beat[k] != null ? Number(beat[k]).toFixed(1) : '-'}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

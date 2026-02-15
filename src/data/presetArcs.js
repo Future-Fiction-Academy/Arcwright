@@ -1,0 +1,71 @@
+export const presetArcs = {
+  romance: [
+    { time: 5, beat: 'setup', label: 'Opening Image', intimacy: 0, powerDiff: 0, infoAsym: 2, alignment: 5, proximity: 3, vulnerability: 1, desire: 0, stakes: 2, trust: 3, danger: 1, mystery: 2 },
+    { time: 10, beat: 'meetCute', label: 'Meet Cute (Hostile)', intimacy: 1, powerDiff: 0, infoAsym: 3, alignment: 2, proximity: 5, vulnerability: 2, desire: 4, stakes: 3, trust: 1, danger: 2, mystery: 3 },
+    { time: 15, beat: 'noWay', label: 'Forced Together', intimacy: 2, powerDiff: 1, infoAsym: 4, alignment: 2, proximity: 7, vulnerability: 3, desire: 5, stakes: 4, trust: 1, danger: 3, mystery: 4 },
+    { time: 25, beat: 'connection', label: 'Sparks Fly', intimacy: 3, powerDiff: 0, infoAsym: 5, alignment: 3, proximity: 8, vulnerability: 4, desire: 6, stakes: 5, trust: 2, danger: 4, mystery: 5 },
+    { time: 35, beat: 'connection', label: 'Growing Closer', intimacy: 5, powerDiff: 0, infoAsym: 5, alignment: 5, proximity: 9, vulnerability: 6, desire: 7, stakes: 5, trust: 4, danger: 4, mystery: 4 },
+    { time: 50, beat: 'midpoint', label: 'Midpoint Kiss/Commit', intimacy: 7, powerDiff: 0, infoAsym: 6, alignment: 6, proximity: 10, vulnerability: 8, desire: 8, stakes: 6, trust: 6, danger: 5, mystery: 5 },
+    { time: 58, beat: 'retreat', label: 'Doubt Creeps In', intimacy: 6, powerDiff: 0, infoAsym: 7, alignment: 4, proximity: 7, vulnerability: 7, desire: 8, stakes: 7, trust: 5, danger: 6, mystery: 7 },
+    { time: 70, beat: 'blackMoment', label: 'Black Moment', intimacy: 2, powerDiff: -2, infoAsym: 9, alignment: 1, proximity: 2, vulnerability: 9, desire: 9, stakes: 10, trust: 2, danger: 8, mystery: 8 },
+    { time: 80, beat: 'epiphany', label: 'Epiphany', intimacy: 4, powerDiff: 0, infoAsym: 6, alignment: 6, proximity: 5, vulnerability: 9, desire: 9, stakes: 8, trust: 5, danger: 6, mystery: 5 },
+    { time: 88, beat: 'grandGesture', label: 'Grand Gesture', intimacy: 7, powerDiff: 0, infoAsym: 3, alignment: 8, proximity: 9, vulnerability: 9, desire: 9, stakes: 6, trust: 8, danger: 3, mystery: 2 },
+    { time: 100, beat: 'hea', label: 'HEA', intimacy: 9, powerDiff: 0, infoAsym: 1, alignment: 9, proximity: 10, vulnerability: 8, desire: 9, stakes: 2, trust: 9, danger: 1, mystery: 1 },
+  ],
+  scienceFiction: [
+    { time: 4, beat: 'ordinaryWorld', label: 'Ordinary World', intimacy: 2, powerDiff: 0, infoAsym: 2, alignment: 6, proximity: 5, vulnerability: 2, desire: 1, stakes: 2, trust: 5, danger: 2, mystery: 3 },
+    { time: 10, beat: 'callToAdventure', label: 'Distress Signal Received', intimacy: 2, powerDiff: 0, infoAsym: 5, alignment: 6, proximity: 5, vulnerability: 3, desire: 1, stakes: 5, trust: 5, danger: 4, mystery: 7 },
+    { time: 13, beat: 'refusalOfCall', label: 'Crew Debates Mission', intimacy: 3, powerDiff: 1, infoAsym: 6, alignment: 4, proximity: 6, vulnerability: 3, desire: 1, stakes: 6, trust: 4, danger: 5, mystery: 8 },
+    { time: 18, beat: 'meetingMentor', label: 'Captain Makes Decision', intimacy: 3, powerDiff: 1, infoAsym: 5, alignment: 7, proximity: 6, vulnerability: 4, desire: 1, stakes: 7, trust: 6, danger: 5, mystery: 7 },
+    { time: 23, beat: 'crossingThreshold', label: 'Jump to Unknown Sector', intimacy: 4, powerDiff: 0, infoAsym: 7, alignment: 7, proximity: 7, vulnerability: 5, desire: 1, stakes: 8, trust: 6, danger: 7, mystery: 9 },
+    { time: 35, beat: 'testsAlliesEnemies', label: 'First Contact - Hostile', intimacy: 4, powerDiff: 2, infoAsym: 8, alignment: 3, proximity: 5, vulnerability: 6, desire: 1, stakes: 9, trust: 4, danger: 8, mystery: 8 },
+    { time: 45, beat: 'testsAlliesEnemies', label: 'Uncover Conspiracy', intimacy: 5, powerDiff: 1, infoAsym: 9, alignment: 5, proximity: 6, vulnerability: 6, desire: 2, stakes: 9, trust: 5, danger: 8, mystery: 9 },
+    { time: 53, beat: 'approachInmostCave', label: 'Approach Enemy Base', intimacy: 5, powerDiff: 0, infoAsym: 8, alignment: 8, proximity: 7, vulnerability: 7, desire: 2, stakes: 10, trust: 7, danger: 9, mystery: 8 },
+    { time: 60, beat: 'ordeal', label: 'Major Space Battle', intimacy: 6, powerDiff: -1, infoAsym: 7, alignment: 8, proximity: 8, vulnerability: 8, desire: 2, stakes: 10, trust: 7, danger: 10, mystery: 7 },
+    { time: 68, beat: 'reward', label: 'Victory - Discover Truth', intimacy: 6, powerDiff: 0, infoAsym: 5, alignment: 8, proximity: 7, vulnerability: 7, desire: 2, stakes: 8, trust: 8, danger: 6, mystery: 5 },
+    { time: 75, beat: 'roadBack', label: 'Return Journey - Pursuit', intimacy: 6, powerDiff: 0, infoAsym: 4, alignment: 9, proximity: 8, vulnerability: 6, desire: 2, stakes: 8, trust: 8, danger: 7, mystery: 4 },
+    { time: 85, beat: 'resurrection', label: 'Final Confrontation', intimacy: 7, powerDiff: 0, infoAsym: 3, alignment: 9, proximity: 8, vulnerability: 7, desire: 2, stakes: 9, trust: 9, danger: 8, mystery: 3 },
+    { time: 100, beat: 'returnWithElixir', label: 'Return Changed', intimacy: 7, powerDiff: 0, infoAsym: 1, alignment: 9, proximity: 7, vulnerability: 5, desire: 2, stakes: 3, trust: 9, danger: 2, mystery: 1 },
+  ],
+  fantasy: [
+    { time: 4, beat: 'ordinaryWorld', label: 'Ordinary World', intimacy: 2, powerDiff: 0, infoAsym: 2, alignment: 6, proximity: 5, vulnerability: 2, desire: 1, stakes: 2, trust: 5, danger: 1, mystery: 3 },
+    { time: 10, beat: 'callToAdventure', label: 'Discover Magic/Prophecy', intimacy: 2, powerDiff: 0, infoAsym: 6, alignment: 6, proximity: 5, vulnerability: 4, desire: 1, stakes: 5, trust: 5, danger: 3, mystery: 8 },
+    { time: 13, beat: 'refusalOfCall', label: 'Fear of Destiny', intimacy: 3, powerDiff: 0, infoAsym: 6, alignment: 4, proximity: 5, vulnerability: 5, desire: 1, stakes: 6, trust: 4, danger: 4, mystery: 8 },
+    { time: 18, beat: 'meetingMentor', label: 'Meet Wise Guide', intimacy: 4, powerDiff: -2, infoAsym: 5, alignment: 7, proximity: 6, vulnerability: 5, desire: 1, stakes: 6, trust: 6, danger: 4, mystery: 7 },
+    { time: 23, beat: 'crossingThreshold', label: 'Leave Home/Village', intimacy: 4, powerDiff: 0, infoAsym: 7, alignment: 7, proximity: 7, vulnerability: 6, desire: 2, stakes: 7, trust: 6, danger: 6, mystery: 8 },
+    { time: 35, beat: 'testsAlliesEnemies', label: 'Form Fellowship', intimacy: 6, powerDiff: 0, infoAsym: 6, alignment: 8, proximity: 8, vulnerability: 6, desire: 2, stakes: 8, trust: 7, danger: 7, mystery: 7 },
+    { time: 45, beat: 'testsAlliesEnemies', label: 'Battle Dark Forces', intimacy: 6, powerDiff: 0, infoAsym: 7, alignment: 8, proximity: 8, vulnerability: 7, desire: 2, stakes: 9, trust: 7, danger: 8, mystery: 6 },
+    { time: 53, beat: 'approachInmostCave', label: 'Approach Dark Lord', intimacy: 7, powerDiff: 0, infoAsym: 8, alignment: 8, proximity: 9, vulnerability: 8, desire: 2, stakes: 10, trust: 8, danger: 9, mystery: 7 },
+    { time: 60, beat: 'ordeal', label: 'Darkest Hour/Betrayal', intimacy: 5, powerDiff: 0, infoAsym: 9, alignment: 6, proximity: 6, vulnerability: 9, desire: 2, stakes: 10, trust: 4, danger: 10, mystery: 8 },
+    { time: 68, beat: 'reward', label: 'Magical Artifact/Power', intimacy: 6, powerDiff: 1, infoAsym: 6, alignment: 8, proximity: 7, vulnerability: 7, desire: 2, stakes: 9, trust: 7, danger: 7, mystery: 5 },
+    { time: 75, beat: 'roadBack', label: 'March to Final Battle', intimacy: 7, powerDiff: 0, infoAsym: 4, alignment: 9, proximity: 9, vulnerability: 6, desire: 2, stakes: 9, trust: 8, danger: 8, mystery: 4 },
+    { time: 85, beat: 'resurrection', label: 'Ultimate Sacrifice/Test', intimacy: 7, powerDiff: 0, infoAsym: 3, alignment: 9, proximity: 9, vulnerability: 8, desire: 2, stakes: 10, trust: 9, danger: 9, mystery: 3 },
+    { time: 100, beat: 'returnWithElixir', label: 'Peace Restored', intimacy: 8, powerDiff: 0, infoAsym: 1, alignment: 9, proximity: 8, vulnerability: 5, desire: 3, stakes: 2, trust: 9, danger: 1, mystery: 1 },
+  ],
+  mystery: [
+    { time: 4, beat: 'ordinaryWorld', label: 'Ordinary World', intimacy: 2, powerDiff: 0, infoAsym: 1, alignment: 6, proximity: 4, vulnerability: 2, desire: 1, stakes: 2, trust: 6, danger: 1, mystery: 2 },
+    { time: 10, beat: 'crime', label: 'Murder Discovered', intimacy: 2, powerDiff: 0, infoAsym: 8, alignment: 6, proximity: 5, vulnerability: 3, desire: 1, stakes: 7, trust: 5, danger: 5, mystery: 9 },
+    { time: 18, beat: 'initialInvestigation', label: 'Initial Clues/Suspects', intimacy: 3, powerDiff: 1, infoAsym: 9, alignment: 6, proximity: 6, vulnerability: 3, desire: 1, stakes: 7, trust: 4, danger: 5, mystery: 9 },
+    { time: 28, beat: 'firstTwist', label: 'First Twist - Red Herring', intimacy: 3, powerDiff: 0, infoAsym: 9, alignment: 5, proximity: 6, vulnerability: 4, desire: 1, stakes: 8, trust: 4, danger: 6, mystery: 10 },
+    { time: 40, beat: 'deeperInvestigation', label: 'Dig Deeper - More Bodies', intimacy: 4, powerDiff: 0, infoAsym: 8, alignment: 6, proximity: 6, vulnerability: 5, desire: 1, stakes: 9, trust: 5, danger: 7, mystery: 9 },
+    { time: 53, beat: 'midpointRevelation', label: 'Key Evidence Found', intimacy: 4, powerDiff: 0, infoAsym: 7, alignment: 7, proximity: 6, vulnerability: 5, desire: 1, stakes: 9, trust: 6, danger: 7, mystery: 8 },
+    { time: 60, beat: 'falseResolution', label: 'Wrong Person Arrested', intimacy: 4, powerDiff: 0, infoAsym: 6, alignment: 5, proximity: 5, vulnerability: 6, desire: 1, stakes: 9, trust: 5, danger: 8, mystery: 7 },
+    { time: 70, beat: 'darkestMoment', label: 'Detective Threatened', intimacy: 3, powerDiff: -1, infoAsym: 8, alignment: 4, proximity: 4, vulnerability: 8, desire: 1, stakes: 10, trust: 4, danger: 9, mystery: 8 },
+    { time: 80, beat: 'finalClues', label: 'Breakthrough - Real Killer', intimacy: 4, powerDiff: 0, infoAsym: 4, alignment: 8, proximity: 5, vulnerability: 7, desire: 1, stakes: 10, trust: 7, danger: 8, mystery: 5 },
+    { time: 90, beat: 'climaxReveal', label: 'Confrontation & Reveal', intimacy: 4, powerDiff: 0, infoAsym: 2, alignment: 9, proximity: 7, vulnerability: 7, desire: 1, stakes: 10, trust: 8, danger: 9, mystery: 2 },
+    { time: 100, beat: 'denouement', label: 'Justice Served', intimacy: 5, powerDiff: 0, infoAsym: 1, alignment: 9, proximity: 5, vulnerability: 4, desire: 1, stakes: 2, trust: 8, danger: 2, mystery: 1 },
+  ],
+};
+
+// Map genre keys to arc keys for consistent lookup
+export const genreToArcMap = {
+  romance: 'romance',
+  scienceFiction: 'scienceFiction',
+  fantasy: 'fantasy',
+  mysteryThrillerSuspense: 'mystery',
+};
+
+export function getIdealCurve(genreKey) {
+  const arcKey = genreToArcMap[genreKey];
+  return presetArcs[arcKey] || presetArcs.romance;
+}
