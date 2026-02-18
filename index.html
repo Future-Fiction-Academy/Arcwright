@@ -3,10 +3,35 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
     <title>Arcwrite</title>
   </head>
-  <body>
-    <div id="root"></div>
+  <body style="margin:0;background:#0f172a">
+    <div id="root">
+      <!-- Splash screen — replaced when React mounts -->
+      <div id="splash" style="
+        position:fixed;inset:0;z-index:9999;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;
+        background:linear-gradient(to bottom right,#0f172a,#3b0764);
+        color:#e9d5ff;font-family:system-ui,sans-serif;
+      ">
+        <img src="/Arcwright-1600.png" alt="Arcwright" style="width:min(80vw,480px);border-radius:16px" />
+        <div style="width:120px;height:3px;border-radius:3px;background:#581c87;overflow:hidden">
+          <div style="
+            width:40%;height:100%;background:#a855f7;border-radius:3px;
+            animation:splash-slide 1.2s ease-in-out infinite;
+          "></div>
+        </div>
+      </div>
+      <style>
+        @keyframes splash-slide {
+          0%   { transform:translateX(-100%) }
+          50%  { transform:translateX(200%) }
+          100% { transform:translateX(-100%) }
+        }
+      </style>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

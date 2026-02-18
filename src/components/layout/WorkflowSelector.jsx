@@ -1,15 +1,66 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import SetupBanner from '../projects/SetupBanner';
 
+function WelcomeModal({ onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-slate-800 border border-purple-500/40 rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-8">
+        <h2 className="text-2xl font-bold text-white mb-4">Welcome to Arcwright</h2>
+        <p className="text-purple-200 text-sm mb-5">
+          Before you get started, here are a few setup steps:
+        </p>
+        <ol className="text-purple-100 text-sm space-y-3 mb-6 list-decimal list-inside">
+          <li>
+            <span className="font-semibold text-white">Select a project folder</span> — use the
+            folder icon in the sidebar to choose a directory for your book and AI projects.
+          </li>
+          <li>
+            <span className="font-semibold text-white">Set up your API key</span> — click the
+            settings gear button and enter your API key so the AI features work.
+          </li>
+          <li>
+            <span className="font-semibold text-white">Connect to your book folder</span> — go
+            to the file pane and open the folder that contains your manuscript files.
+          </li>
+          <li>
+            <span className="font-semibold text-white">Check out Help</span> — use the help page
+            for guidance on workflows and features.
+          </li>
+        </ol>
+        <button
+          onClick={onClose}
+          className="w-full py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold transition-colors"
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function WorkflowSelector() {
+  const [showWelcome, setShowWelcome] = useState(() => {
+    return !localStorage.getItem('arcwright-welcome-seen');
+  });
+
+  const dismissWelcome = () => {
+    localStorage.setItem('arcwright-welcome-seen', '1');
+    setShowWelcome(false);
+  };
+
   return (
     <div>
-      <div className="text-center mb-10">
-        <h1 className="text-4xl font-bold mb-3">Arcwrite</h1>
-        <p className="text-purple-200 text-lg italic">
-          Story analysis, scaffolding, and editorial tools
-        </p>
+      {showWelcome && <WelcomeModal onClose={dismissWelcome} />}
+
+      {/* Hero splash with background image */}
+      <div className="relative rounded-2xl overflow-hidden mb-10 -mt-2">
+        <img
+          src="/mascot.png"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="relative py-24" />
       </div>
 
       <SetupBanner />
