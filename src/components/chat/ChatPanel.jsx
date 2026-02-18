@@ -20,13 +20,18 @@ export default function ChatPanel() {
   const streamBuffer = useChatStore((s) => s.streamBuffer);
   const error = useChatStore((s) => s.error);
   const clearMessages = useChatStore((s) => s.clearMessages);
+  const truncateAfter = useChatStore((s) => s.truncateAfter);
+  const truncateFrom = useChatStore((s) => s.truncateFrom);
 
   const [input, setInput] = useState('');
+  const [attachments, setAttachments] = useState([]);
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [showFiles, setShowFiles] = useState(false);
   const [systemPromptText, setSystemPromptText] = useState('');
+  const [editingMessageId, setEditingMessageId] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
   const activeProvider = useAppStore((s) => s.activeProvider);
   const providers = useAppStore((s) => s.providers);
   const chatSettings = useAppStore((s) => s.chatSettings);
@@ -94,11 +99,55 @@ export default function ChatPanel() {
 
   const abortStream = useChatStore((s) => s.abortStream);
 
+  // Handle file attachment
+  const handleAttachFile = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const newAttachments = [];
+    for (const file of files) {
+      try {
+        const content = await file.text();
+        newAttachments.push({
+          name: file.name,
+          content,
+          size: file.size,
+        });
+      } catch (err) {
+        console.warn('[ChatPanel] Failed to read file:', file.name, err.message);
+      }
+    }
+
+    setAttachments((prev) => [...prev, ...newAttachments]);
+    // Reset input so same file can be selected again
+    e.target.value = '';
+  };
+
+  const removeAttachment = (index) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSend = () => {
     const text = input.trim();
-    if (!text || isStreaming) return;
+    if ((!text && attachments.length === 0) || isStreaming) return;
+
+    // Build message content with attachments
+    let messageContent = text;
+    if (attachments.length > 0) {
+      const attachmentText = attachments.map((att) =>
+        `\n\n---\n**Attached file: ${att.name}**\n\`\`\`\n${att.content}\n\`\`\``
+      ).join('');
+      messageContent = text + attachmentText;
+    }
+
     setInput('');
-    sendMessage(text);
+    setAttachments([]);
+    setEditingMessageId(null);
+    sendMessage(messageContent);
   };
 
   const handleKeyDown = (e) => {
@@ -106,6 +155,41 @@ export default function ChatPanel() {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  // Handle copy action
+  const handleCopy = () => {
+    // Could show a toast notification here
+  };
+
+  // Handle regenerate - find the last user message and regenerate from there
+  const handleRegenerate = (assistantMessage) => {
+    // Find the user message that preceded this assistant message
+    const msgIndex = messages.findIndex((m) => m.id === assistantMessage.id);
+    if (msgIndex <= 0) return;
+
+    // Find the last user message before this assistant message
+    let userMsgIndex = -1;
+    for (let i = msgIndex - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        userMsgIndex = i;
+        break;
+      }
+    }
+    if (userMsgIndex === -1) return;
+
+    const userMessage = messages[userMsgIndex];
+    // Truncate to just before the user message, then resend
+    truncateFrom(userMessage.id);
+    setTimeout(() => sendMessage(userMessage.content), 100);
+  };
+
+  // Handle edit - populate input with message content and remove it + subsequent messages
+  const handleEdit = (message) => {
+    setInput(message.content);
+    setEditingMessageId(message.id);
+    truncateFrom(message.id);
+    inputRef.current?.focus();
   };
 
   return (
@@ -247,8 +331,14 @@ export default function ChatPanel() {
             </div>
           )}
 
-          {messages.map((msg) => (
-            <ChatMessage key={msg.id} message={msg} />
+          {messages.map((msg, idx) => (
+            <ChatMessage
+              key={msg.id}
+              message={msg}
+              onCopy={handleCopy}
+              onRegenerate={msg.role === 'assistant' ? () => handleRegenerate(msg) : undefined}
+              onEdit={msg.role === 'user' ? handleEdit : undefined}
+            />
           ))}
 
           {/* Streaming: show partial response */}
@@ -280,6 +370,30 @@ export default function ChatPanel() {
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Attachments preview */}
+        {attachments.length > 0 && (
+          <div className="px-3 pt-2 border-t border-black/10 bg-gray-50">
+            <div className="flex flex-wrap gap-2">
+              {attachments.map((att, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-1 px-2 py-1 bg-white border border-black/15 rounded text-xs"
+                >
+                  <span className="text-gray-500">📎</span>
+                  <span className="truncate max-w-[120px]" title={att.name}>{att.name}</span>
+                  <button
+                    onClick={() => removeAttachment(i)}
+                    className="text-gray-400 hover:text-red-500 ml-1"
+                    title="Remove"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Input area */}
         <div className="p-3 border-t border-black/15 shrink-0 bg-white">
           <div className="relative">
@@ -288,9 +402,26 @@ export default function ChatPanel() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask about your story..."
+              placeholder={editingMessageId ? 'Edit your message...' : 'Ask about your story...'}
               rows={2}
-              className="w-full bg-white border border-black/20 rounded-lg pl-3 pr-10 py-2 text-sm text-black resize-none focus:outline-none focus:border-black/50 placeholder:text-gray-400"
+              className="w-full bg-white border border-black/20 rounded-lg pl-10 pr-10 py-2 text-sm text-black resize-none focus:outline-none focus:border-black/50 placeholder:text-gray-400"
+            />
+            {/* File attachment button */}
+            <button
+              onClick={handleAttachFile}
+              disabled={isStreaming}
+              className="absolute left-2 bottom-2 w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
+              title="Attach files"
+            >
+              📎
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              onChange={handleFileSelected}
+              className="hidden"
+              accept=".txt,.md,.json,.js,.jsx,.ts,.tsx,.css,.html,.py,.xml,.yaml,.yml,.csv"
             />
             {isStreaming ? (
               <button
@@ -303,13 +434,18 @@ export default function ChatPanel() {
             ) : (
               <button
                 onClick={handleSend}
-                disabled={!input.trim()}
+                disabled={!input.trim() && attachments.length === 0}
                 className="absolute right-2 bottom-2 w-7 h-7 flex items-center justify-center bg-black hover:bg-gray-800 disabled:bg-gray-300 disabled:text-gray-500 text-white rounded-md text-sm font-semibold transition-colors"
               >
                 {'\u2191'}
               </button>
             )}
           </div>
+          {editingMessageId && (
+            <div className="mt-1 text-[10px] text-purple-600 font-medium">
+              Editing message • <button onClick={() => { setEditingMessageId(null); setInput(''); }} className="underline hover:text-purple-800">Cancel</button>
+            </div>
+          )}
         </div>
       </div>
   );

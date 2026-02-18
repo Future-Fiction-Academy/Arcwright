@@ -35,6 +35,20 @@ const useChatStore = create((set, get) => ({
   clearMessages: () => set({ messages: [], error: null }),
   setMessages: (msgs) => set({ messages: msgs || [], error: null }),
 
+  // Remove all messages after a given message ID (for regenerate)
+  truncateAfter: (messageId) => set((s) => {
+    const idx = s.messages.findIndex((m) => m.id === messageId);
+    if (idx === -1) return s;
+    return { messages: s.messages.slice(0, idx + 1) };
+  }),
+
+  // Remove a message and all messages after it (for edit - removes the message being edited too)
+  truncateFrom: (messageId) => set((s) => {
+    const idx = s.messages.findIndex((m) => m.id === messageId);
+    if (idx === -1) return s;
+    return { messages: s.messages.slice(0, idx) };
+  }),
+
   setError: (err) => set({ error: err }),
   setStreaming: (v) => set({ isStreaming: v }),
   setAbortController: (ac) => set({ abortController: ac }),

@@ -36,35 +36,45 @@ export default function AiProjectEditor({ project, onSave, onCancel, colors: c, 
     }
 
     try {
-      // Open file picker (scoped to Arcwrite directory via startIn)
-      const [fileHandle] = await window.showOpenFilePicker({
-        multiple: false,
+      // Open file picker with multi-select enabled
+      const fileHandles = await window.showOpenFilePicker({
+        multiple: true,
         startIn: arcwriteHandle,
       });
 
-      // Resolve relative path
-      const pathParts = await arcwriteHandle.resolve(fileHandle);
-      const relativePath = pathParts ? pathParts.join('/') : fileHandle.name;
+      const newFiles = [];
+      const duplicates = [];
 
-      // Check for duplicates
-      if (files.some((f) => f.path === relativePath)) {
-        alert('This file is already in the project.');
-        return;
+      for (const fileHandle of fileHandles) {
+        // Resolve relative path
+        const pathParts = await arcwriteHandle.resolve(fileHandle);
+        const relativePath = pathParts ? pathParts.join('/') : fileHandle.name;
+
+        // Check for duplicates
+        if (files.some((f) => f.path === relativePath) || newFiles.some((f) => f.path === relativePath)) {
+          duplicates.push(relativePath);
+          continue;
+        }
+
+        // Read and cache file content so it's always available
+        let cachedContent = null;
+        try {
+          const file = await fileHandle.getFile();
+          cachedContent = await file.text();
+        } catch (readErr) {
+          console.warn('[AiProjectEditor] Could not read file content:', readErr.message);
+        }
+
+        newFiles.push({ path: relativePath, title: '', description: '', cachedContent, includeMode: 'auto' });
       }
 
-      // Read and cache file content so it's always available
-      let cachedContent = null;
-      try {
-        const file = await fileHandle.getFile();
-        cachedContent = await file.text();
-      } catch (readErr) {
-        console.warn('[AiProjectEditor] Could not read file content:', readErr.message);
+      if (newFiles.length > 0) {
+        setFiles((prev) => [...prev, ...newFiles]);
       }
 
-      setFiles((prev) => [
-        ...prev,
-        { path: relativePath, title: '', description: '', cachedContent, includeMode: 'auto' },
-      ]);
+      if (duplicates.length > 0) {
+        alert(`${duplicates.length} file(s) already in project:\n${duplicates.join('\n')}`);
+      }
     } catch (e) {
       // User cancelled picker — ignore
       if (e.name === 'AbortError') return;
@@ -168,6 +178,7 @@ export default function AiProjectEditor({ project, onSave, onCancel, colors: c, 
           <label style={{ fontSize: 12, fontWeight: 600 }}>Project Files</label>
           <button
             onClick={handleAddFile}
+            title="Select one or more files to add"
             style={{
               fontSize: 11,
               color: '#7C3AED',
@@ -177,7 +188,7 @@ export default function AiProjectEditor({ project, onSave, onCancel, colors: c, 
               fontWeight: 600,
             }}
           >
-            + Add File
+            + Add Files
           </button>
         </div>
 

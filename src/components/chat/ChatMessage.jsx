@@ -1,11 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ChatActionBadge from './ChatActionBadge';
 
-export default function ChatMessage({ message }) {
+export default function ChatMessage({ message, onCopy, onRegenerate, onEdit }) {
   const isUser = message.role === 'user';
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message.content || '');
+    if (onCopy) onCopy();
+  };
 
   return (
-    <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
+    <div
+      className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div
         className={`rounded-lg px-3 py-2 text-sm ${
           isUser
@@ -16,6 +26,33 @@ export default function ChatMessage({ message }) {
         <div className="whitespace-pre-wrap break-words leading-relaxed">
           {formatText(message.content)}
         </div>
+
+        {/* Attached files indicator */}
+        {message.attachments && message.attachments.length > 0 && (
+          <div className="mt-2 pt-2 border-t border-black/10">
+            <div className="text-[10px] text-gray-500 font-medium mb-1">Attached files:</div>
+            {message.attachments.map((att, i) => (
+              <div key={i} className="text-[10px] text-gray-600 truncate">
+                📎 {att.name}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Per-message action buttons */}
+      <div
+        className={`flex gap-1 mt-1 transition-opacity duration-150 ${
+          isHovered ? 'opacity-100' : 'opacity-0'
+        }`}
+      >
+        <ActionButton icon="📋" title="Copy" onClick={handleCopy} />
+        {!isUser && onRegenerate && (
+          <ActionButton icon="🔄" title="Regenerate" onClick={onRegenerate} />
+        )}
+        {isUser && onEdit && (
+          <ActionButton icon="✏️" title="Edit" onClick={() => onEdit(message)} />
+        )}
       </div>
 
       {message.actions && message.actions.length > 0 && (
@@ -26,6 +63,18 @@ export default function ChatMessage({ message }) {
         </div>
       )}
     </div>
+  );
+}
+
+function ActionButton({ icon, title, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors text-xs"
+    >
+      {icon}
+    </button>
   );
 }
 
