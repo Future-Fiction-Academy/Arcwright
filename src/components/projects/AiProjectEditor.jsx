@@ -98,7 +98,7 @@ export default function AiProjectEditor({ project, onSave, onCancel, colors: c, 
 
   const handleAddFolder = async () => {
     try {
-      const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+      const dirHandle = await window.showDirectoryPicker({ mode: 'read', startIn: 'documents' });
       const folderName = dirHandle.name;
 
       // Check for duplicates

@@ -7,7 +7,7 @@ export default function SetupBanner() {
 
   const handleSetup = useCallback(async () => {
     try {
-      const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      const handle = await window.showDirectoryPicker({ mode: 'readwrite', startIn: 'documents' });
       await useProjectStore.getState().setRootDirectory(handle);
     } catch (e) {
       if (e.name !== 'AbortError') console.error('Setup failed:', e);

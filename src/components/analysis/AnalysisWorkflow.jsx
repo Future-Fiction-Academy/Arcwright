@@ -56,7 +56,7 @@ export default function AnalysisWorkflow() {
         // Fallback: pick a directory
         let dirHandle = useEditorStore.getState().directoryHandle;
         if (!dirHandle) {
-          dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+          dirHandle = await window.showDirectoryPicker({ mode: 'readwrite', startIn: 'documents' });
           useEditorStore.getState().setDirectoryHandle(dirHandle);
         }
         booksHandle = dirHandle;

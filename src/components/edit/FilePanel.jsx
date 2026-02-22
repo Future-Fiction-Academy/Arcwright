@@ -326,7 +326,7 @@ export default function FilePanel() {
 
   const handleOpenFolder = useCallback(async () => {
     try {
-      const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      const handle = await window.showDirectoryPicker({ mode: 'readwrite', startIn: 'documents' });
       setDirectoryHandle(handle);
       const tree = await buildFileTree(handle);
       setFileTree(tree);
