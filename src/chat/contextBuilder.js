@@ -253,7 +253,7 @@ Each step is an object. Three step types:
 *condition* (yes/no branch): \`{"id": "step_2", "type": "condition", "name": "<label>", "template": "<question for AI to evaluate>", "ifYes": "continue", "ifNo": "end"}\`
 - \`ifYes\` / \`ifNo\`: "continue" | "end" | step index number to jump to
 
-*loop* (repeat sub-steps N times): \`{"id": "step_3", "type": "loop", "name": "<label>", "count": 3, "iterations": [<action steps using {{loop_index}} and ## in outputFile>]}\`
+*loop* (repeat sub-steps N times): \`{"id": "step_3", "type": "loop", "name": "<label>", "count": 3, "steps": [<action steps using {{loop_index}} and ## in outputFile>]}\`
 - Use \`##\` in outputFile for zero-padded iteration number (e.g. "chapters/chapter-##.md")
 - Use \`{{loop_index}}\` in template for 0-based index, \`{{loop_count}}\` for total
 

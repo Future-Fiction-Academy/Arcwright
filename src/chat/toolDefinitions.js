@@ -614,7 +614,7 @@ export const toolDefinitions = [
                 ifNo: { type: 'string', description: 'For condition steps: what to do if AI answers NO.' },
                 count: { type: 'number', description: 'For loop steps: fixed iteration count.' },
                 maxIterations: { type: 'number', description: 'For loop steps: maximum iterations (if count not fixed).' },
-                iterations: { type: 'array', description: 'For loop steps: the steps to run on each iteration (action steps only).' },
+                steps: { type: 'array', description: 'For loop steps: the action steps to run on each iteration (action steps only, no nested loops).' },
               },
             },
           },
