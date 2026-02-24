@@ -151,6 +151,31 @@ You have tools available to modify the application state. Use them when the user
 **RULE: When asked to analyze a workflow or process and turn it into a sequence, use createSequence to save it.**
 
 **RULE: When asked to create a sequence from a named skill or AI Project, first call listAgents to find it, then call readAgentDefinition to read its workflow definition, then analyze its stages and call createSequence. Do NOT try to read individual files by guessing paths.**
+
+**Sequence step schema for createSequence:**
+- action: \`{"id":"s1","type":"action","name":"<label>","template":"<task prompt>","outputFile":"outputs/file.md","chain":false}\`
+- condition: \`{"id":"s2","type":"condition","name":"<label>","template":"<yes/no question>","ifYes":"end","ifNo":"continue"}\`
+- loop (fixed): \`{"id":"s3","type":"loop","name":"<label>","count":3,"steps":[...action/condition steps...]}\`
+- loop (dynamic — exit condition controls stop): \`{"id":"s3","type":"loop","name":"<label>","count":null,"maxIterations":10,"steps":[...action steps..., <condition step last with ifYes:"end">]}\`
+- Use \`##\` in outputFile for zero-padded iteration number. Use \`{{loop_index}}\` / \`{{loop_count}}\` in templates.
+
+**Reference example (all patterns):**
+\`\`\`json
+{
+  "name": "Draft & Review Loop",
+  "description": "Intake → draft each chapter in a loop until done → final review",
+  "steps": [
+    {"id":"s1","type":"action","name":"Intake","template":"Review the project brief. Output a planning summary with genre, protagonist, chapter count, tone.","outputFile":"outputs/plan.md","chain":false},
+    {"id":"s2","type":"loop","name":"Draft Chapters","count":null,"maxIterations":20,
+      "steps":[
+        {"id":"s2a","type":"action","name":"Draft chapter","template":"Using outputs/plan.md, draft chapter {{loop_index}}. POV: {{pov}}. Target: {{word_target}} words.","outputFile":"outputs/chapter-##.md","chain":true},
+        {"id":"s2b","type":"condition","name":"All chapters done?","template":"The plan says {{chapter_count}} chapters total. Current loop_index is {{loop_index}}. Have all chapters been drafted? YES if done, NO if more remain.","ifYes":"end","ifNo":"continue"}
+      ]
+    },
+    {"id":"s3","type":"action","name":"Final review","template":"Review all drafted chapters for consistency, pacing, and continuity. List any issues.","outputFile":"outputs/review.md","chain":false}
+  ]
+}
+\`\`\`
 `;
   } else {
     prompt += `
@@ -253,11 +278,51 @@ Each step is an object. Three step types:
 *condition* (yes/no branch): \`{"id": "step_2", "type": "condition", "name": "<label>", "template": "<question for AI to evaluate>", "ifYes": "continue", "ifNo": "end"}\`
 - \`ifYes\` / \`ifNo\`: "continue" | "end" | step index number to jump to
 
-*loop* (repeat sub-steps N times): \`{"id": "step_3", "type": "loop", "name": "<label>", "count": 3, "steps": [<action steps using {{loop_index}} and ## in outputFile>]}\`
-- Use \`##\` in outputFile for zero-padded iteration number (e.g. "chapters/chapter-##.md")
+*loop* (repeat sub-steps N times):
+- Fixed count: \`{"id": "step_3", "type": "loop", "name": "<label>", "count": 3, "steps": [...]}\`
+- Dynamic (exit condition controls stop): \`{"id": "step_3", "type": "loop", "name": "<label>", "count": null, "maxIterations": 10, "steps": [...]}\`
+- Loop body \`steps\` array may contain action and condition steps. No nested loops.
+- Use \`##\` in outputFile for zero-padded iteration number (e.g. "outputs/book-##-dossier.md")
 - Use \`{{loop_index}}\` in template for 0-based index, \`{{loop_count}}\` for total
+- For dynamic loops: put a condition step LAST in the \`steps\` array. \`ifYes: "end"\` exits the loop; \`ifNo: "continue"\` runs the next iteration.
 
 Template variables: \`{{variable_name}}\` resolved from userInputs when sequence runs.
+
+**Reference example — a complete well-formed sequence with all patterns:**
+\`\`\`json
+{
+  "name": "Draft & Review Loop",
+  "description": "Intake → draft each chapter in a loop until done → final review",
+  "steps": [
+    {
+      "id": "s1", "type": "action", "name": "Intake",
+      "template": "Review the project brief and summarize: genre, protagonist, chapter count, tone. Output a planning summary.",
+      "outputFile": "outputs/plan.md", "chain": false
+    },
+    {
+      "id": "s2", "type": "loop", "name": "Draft Chapters",
+      "count": null, "maxIterations": 20,
+      "steps": [
+        {
+          "id": "s2a", "type": "action", "name": "Draft chapter",
+          "template": "Using the plan (outputs/plan.md), draft chapter {{loop_index}} in full. POV: {{pov}}. Target: {{word_target}} words.",
+          "outputFile": "outputs/chapter-##.md", "chain": true
+        },
+        {
+          "id": "s2b", "type": "condition", "name": "All chapters done?",
+          "template": "The plan says there are {{chapter_count}} chapters. Loop index is {{loop_index}}. Have all chapters (0 through {{chapter_count}} minus 1) been drafted? Answer YES if done, NO if more remain.",
+          "ifYes": "end", "ifNo": "continue"
+        }
+      ]
+    },
+    {
+      "id": "s3", "type": "action", "name": "Final review",
+      "template": "Review all drafted chapters for consistency, pacing, and continuity. List any issues found.",
+      "outputFile": "outputs/review.md", "chain": false
+    }
+  ]
+}
+\`\`\`
 
 **RULE: When asked to analyze a workflow and create a sequence, call createSequence. Describe what you're building first, then save it.**
 
