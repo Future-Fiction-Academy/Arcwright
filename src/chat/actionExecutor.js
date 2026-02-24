@@ -111,6 +111,47 @@ async function _seqRunActionBody(step, ctx) {
   return { wordCount, resolvedOutputFile };
 }
 
+// ── Sequence log helper ───────────────────────────────────────────────────────
+
+/**
+ * Append a markdown entry to the sequence run log.
+ * Does NOT rebuild the file tree — kept lightweight for frequent calls.
+ * Silently skips if no directory is open.
+ */
+async function _seqAppendLog(logPath, entry) {
+  const rootHandle = useEditorStore.getState().directoryHandle;
+  if (!rootHandle) return;
+
+  const parts = logPath.split('/').filter(Boolean);
+  const filename = parts.pop();
+  if (!filename) return;
+
+  let dirHandle = rootHandle;
+  for (const part of parts) {
+    dirHandle = await dirHandle.getDirectoryHandle(part, { create: true });
+  }
+
+  let existing = '';
+  try {
+    const fh = await dirHandle.getFileHandle(filename, { create: false });
+    existing = await (await fh.getFile()).text();
+  } catch { /* file doesn't exist yet */ }
+
+  const fh = await dirHandle.getFileHandle(filename, { create: true });
+  const writable = await fh.createWritable();
+  await writable.write(existing + entry);
+  await writable.close();
+}
+
+function _seqLogPath(sequenceName) {
+  const safe = sequenceName.replace(/[^a-zA-Z0-9 _-]/g, '').trim().replace(/\s+/g, '_');
+  return `logs/${safe}_log.md`;
+}
+
+function _logTs() {
+  return new Date().toISOString().slice(0, 19).replace('T', ' ');
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const ACTION_HANDLERS = {
@@ -927,6 +968,10 @@ export const ACTION_HANDLERS = {
     const systemPrompt = buildSequenceStepSystemPrompt();
 
     const stepStatuses = sequence.steps.map(_seqInitStatus);
+    const logPath = _seqLogPath(sequence.name);
+    await _seqAppendLog(logPath,
+      `# ${sequence.name} — Sequence Log\nStarted: ${_logTs()}\n\n`
+    );
 
     // Snapshot stepStatuses for setRunningSequence (spreads loop iterations to avoid mutation aliasing)
     const _snapshot = () => stepStatuses.map((s) =>
@@ -977,6 +1022,11 @@ export const ACTION_HANDLERS = {
           stepStatuses[i] = { ...stepStatuses[i], status: 'done', wordCount, outputFile: resolvedOutputFile };
           _updateRunning(i + 1);
           results.push({ step: step.name || step.outputFile || `Step ${i + 1}`, outputFile: resolvedOutputFile, wordCount });
+          await _seqAppendLog(logPath,
+            `## ${_logTs()} — ${step.name || `Step ${i + 1}`}\n` +
+            (resolvedOutputFile ? `Output: \`${resolvedOutputFile}\`  \n` : '') +
+            `Words: ${wordCount.toLocaleString()}\n\n`
+          );
 
         // ── Condition step ───────────────────────────────────────────────────
         } else if (type === 'condition') {
@@ -1006,6 +1056,9 @@ export const ACTION_HANDLERS = {
             content: `_"${condName}": ${decision}_`,
             timestamp: Date.now(),
           });
+          await _seqAppendLog(logPath,
+            `## ${_logTs()} — ${condName} [condition]\nDecision: ${decision}\n\n`
+          );
 
         // ── Loop step ────────────────────────────────────────────────────────
         } else if (type === 'loop') {
@@ -1038,6 +1091,11 @@ export const ACTION_HANDLERS = {
                 const { wordCount: bw, resolvedOutputFile: bf } = await _seqRunActionBody(bodyStep, iterCtx);
                 iterWords += bw;
                 if (bf) iterFile = bf;
+                await _seqAppendLog(logPath,
+                  `### ${_logTs()} — ${step.name || `Loop ${i + 1}`} · Iter ${iter + 1} · ${bodyStep.name || `Step ${bi + 1}`}\n` +
+                  (bf ? `Output: \`${bf}\`  \n` : '') +
+                  `Words: ${bw.toLocaleString()}\n\n`
+                );
               } else if (btype === 'condition') {
                 let q = bodyStep.template || '';
                 if (iterCtx.chainedContext) q = q.replace(/\{\{chained_context\}\}/g, iterCtx.chainedContext);
@@ -1109,6 +1167,9 @@ export const ACTION_HANDLERS = {
     }
 
     const totalWords = results.reduce((s, r) => s + r.wordCount, 0);
+    await _seqAppendLog(logPath,
+      `---\n**Completed**: ${_logTs()} · ${totalWords.toLocaleString()} total words\n`
+    );
     return `Sequence "${sequence.name}" complete: ${sequence.steps.length} step${sequence.steps.length !== 1 ? 's' : ''}, ${totalWords.toLocaleString()} total words.\n${
       results.map((r) => `- ${r.step}${r.outputFile ? ` → \`${r.outputFile}\`` : ''} (${r.wordCount.toLocaleString()} words)`).join('\n')
     }`;
