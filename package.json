@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && cp start.sh dist/start.sh && cp start.bat dist/start.bat && chmod +x dist/start.sh",
     "preview": "vite preview"
   },
   "dependencies": {
