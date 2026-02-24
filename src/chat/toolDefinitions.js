@@ -509,8 +509,25 @@ export const toolDefinitions = [
     type: 'function',
     function: {
       name: 'listAgents',
-      description: 'List all available AI Projects that can be spawned as agents. Returns their IDs, names, descriptions, and available file catalogs.',
+      description: 'List all available AI Projects that can be spawned as agents. Returns their IDs, names, descriptions, and whether they are skill-based (isSkill: true). Use readAgentDefinition to read the full workflow definition of a skill agent.',
       parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'readAgentDefinition',
+      description: 'Read the full definition (system prompt and file list) of a named AI Project agent. Use this when you need to understand a skill\'s workflow stages before converting it to a sequence with createSequence.',
+      parameters: {
+        type: 'object',
+        properties: {
+          agentId: {
+            type: 'string',
+            description: 'The AI Project name (from listAgents).',
+          },
+        },
+        required: ['agentId'],
+      },
     },
   },
   {

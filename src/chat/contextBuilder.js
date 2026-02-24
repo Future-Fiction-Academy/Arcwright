@@ -42,6 +42,8 @@ You have tools to inspect the current application state on demand. Use these whe
 - \`listSequences\` — all saved named sequences with full step details (id, name, description, steps)
 - \`runNamedSequence\` — run a saved sequence by ID (use listSequences first to find ID and understand steps)
 - \`createSequence\` — analyze a workflow description and save it as a named sequence
+- \`listAgents\` — list all AI Projects; isSkill:true means it has a structured workflow definition
+- \`readAgentDefinition\` — read the full system prompt and file list of a named AI Project agent
 `;
 
   // On Edit page: show a brief editor header (directory + open tabs) so the model
@@ -147,6 +149,8 @@ You have tools available to modify the application state. Use them when the user
 **RULE: When asked to write 2 or more chapters or documents, call runSequence instead of writing them all in one response. Each step's task field must be self-contained: include character names, POV, beat brief, word target, and any relevant story details.**
 
 **RULE: When asked to analyze a workflow or process and turn it into a sequence, use createSequence to save it.**
+
+**RULE: When asked to create a sequence from a named skill or AI Project, first call listAgents to find it, then call readAgentDefinition to read its workflow definition, then analyze its stages and call createSequence. Do NOT try to read individual files by guessing paths.**
 `;
   } else {
     prompt += `
@@ -229,7 +233,8 @@ Always write the COMPLETE revised text — never partial content or diffs.
 - {"type": "listArtifacts"} — List all artifacts with metadata
 
 **Orchestrator Actions (for multi-agent coordination):**
-- {"type": "listAgents"} — List all AI Projects available as agents
+- {"type": "listAgents"} — List all AI Projects available as agents (isSkill:true = has structured workflow)
+- {"type": "readAgentDefinition", "agentId": "<name>"} — Read the full definition of a named AI Project agent; use before creating a sequence from a skill
 - {"type": "listPromptTools"} — List all custom prompts available as tools
 - {"type": "spawnAgent", "agentId": "<ai_project_name>", "task": "<task description>", "inputs": {...}, "provider": "<optional>", "model": "<optional>"} — Spawn an AI Project agent to perform a task
 - {"type": "runPrompt", "promptId": "<prompt_id>", "inputs": {"<var>": "<value>"}, "provider": "<optional>", "model": "<optional>"} — Execute a custom prompt as a tool
@@ -255,6 +260,8 @@ Each step is an object. Three step types:
 Template variables: \`{{variable_name}}\` resolved from userInputs when sequence runs.
 
 **RULE: When asked to analyze a workflow and create a sequence, call createSequence. Describe what you're building first, then save it.**
+
+**RULE: When asked to create a sequence from a named skill or AI Project, first call listAgents to find it, then call readAgentDefinition to read its workflow definition, then analyze its stages and call createSequence. Do NOT guess file paths.**
 
 ### Rules
 1. Always explain what you're doing BEFORE the action block.
@@ -580,6 +587,8 @@ You have tools to inspect the current application state on demand. Use these **o
 - \`listSequences\` — all saved named sequences with full step details
 - \`runNamedSequence\` — run a saved sequence by ID
 - \`createSequence\` — analyze a workflow and save it as a named sequence
+- \`listAgents\` — list AI Projects; isSkill:true means structured workflow definition
+- \`readAgentDefinition\` — read the full definition of a named AI Project; use this before creating a sequence from a skill
 
 **Important:** Only call getters when you need specific data to answer the user's question or perform a requested action. Do NOT gather all state at the start of a conversation. Do NOT call readProjectFile proactively before writing — only call it when the user explicitly asks you to reference a specific file. When asked to write, draft, or revise any chapter or file content, you MUST call \`writeFile\` or \`writeArtifact\` to save it to disk — never output file content as text in chat. When you write a file, your chat response must be at most one sentence confirming the filename and word count.
 `;

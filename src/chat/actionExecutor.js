@@ -752,14 +752,43 @@ export const ACTION_HANDLERS = {
   // --- Orchestrator / Multi-agent ---
   listAgents: async () => {
     const { aiProjects } = useProjectStore.getState();
-    const agents = aiProjects.map((p) => ({
-      id: p.name,
-      name: p.name,
-      description: p.description || '(no description)',
-      hasFiles: (p.files?.length || 0) > 0,
-      fileCount: p.files?.length || 0,
-    }));
+    const agents = aiProjects.map((p) => {
+      const hasSkill = p.files?.some(
+        (f) => f.type === 'folder' && (f.includeMode === 'skill' || f.cachedContent)
+      ) || false;
+      return {
+        id: p.name,
+        name: p.name,
+        description: p.description || '(no description)',
+        isSkill: hasSkill,
+        hasFiles: (p.files?.length || 0) > 0,
+        fileCount: p.files?.length || 0,
+      };
+    });
     return JSON.stringify({ agents }, null, 2);
+  },
+
+  readAgentDefinition: async ({ agentId }) => {
+    if (!agentId) throw new Error('agentId is required');
+    const { aiProjects } = useProjectStore.getState();
+    const project = aiProjects.find((p) => p.name.toLowerCase() === agentId.toLowerCase());
+    if (!project) {
+      const names = aiProjects.map((p) => p.name).join(', ');
+      throw new Error(`Agent not found: ${agentId}. Available: ${names}`);
+    }
+    const parts = [];
+    if (project.systemPrompt?.trim()) {
+      parts.push(`## System Prompt\n\n${project.systemPrompt.trim()}`);
+    }
+    if (project.files?.length) {
+      const fileList = project.files.map((f) => {
+        const tag = f.includeMode === 'skill' || (f.type === 'folder' && f.cachedContent) ? ' [skill folder]' : '';
+        return `- ${f.title || f.path}${tag}`;
+      }).join('\n');
+      parts.push(`## Attached Files\n\n${fileList}`);
+    }
+    if (parts.length === 0) return `Agent "${project.name}" has no definition content.`;
+    return parts.join('\n\n');
   },
 
   listPromptTools: async () => {
