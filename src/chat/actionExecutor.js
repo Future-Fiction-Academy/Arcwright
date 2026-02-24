@@ -847,8 +847,39 @@ export const ACTION_HANDLERS = {
       id: s.id,
       name: s.name,
       description: s.description || '',
-      stepCount: s.steps?.length || 0,
+      steps: (s.steps || []).map((step) => ({
+        id: step.id,
+        type: step.type || 'action',
+        name: step.name || step.outputFile || '',
+        outputFile: step.outputFile || null,
+        template: step.template || null,
+        promptRef: step.promptRef || null,
+        chain: step.chain || false,
+        modelOverride: step.modelOverride || null,
+        ...(step.type === 'condition' ? { ifYes: step.ifYes, ifNo: step.ifNo } : {}),
+        ...(step.type === 'loop' ? { count: step.count, maxIterations: step.maxIterations, iterations: step.iterations } : {}),
+      })),
     })), null, 2);
+  },
+
+  createSequence: async ({ name, description, steps }) => {
+    if (!name?.trim()) throw new Error('createSequence: name is required');
+    if (!Array.isArray(steps) || steps.length === 0) throw new Error('createSequence: steps array is required');
+
+    // Assign IDs to any steps missing them
+    const stepsWithIds = steps.map((s, i) => ({
+      ...s,
+      id: s.id || `step_${Date.now()}_${i}`,
+    }));
+
+    const seq = await useSequenceStore.getState().createSequence({
+      name: name.trim(),
+      description: (description || '').trim(),
+      steps: stepsWithIds,
+    });
+
+    if (!seq) throw new Error('Failed to save sequence — is a project folder connected?');
+    return `Sequence "${seq.name}" saved with ${stepsWithIds.length} step(s). ID: ${seq.id}`;
   },
 
   runNamedSequence: async ({ sequenceId, userInputs }) => {

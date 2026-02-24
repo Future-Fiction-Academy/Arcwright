@@ -39,8 +39,9 @@ You have tools to inspect the current application state on demand. Use these whe
 - \`getChapters\` — chapter list with scores, status, word counts
 - \`getRevisionChecklist\` — revision items with checked state
 - \`getEditorContents\` — open editor pane contents (files, word counts, full text)
-- \`listSequences\` — all saved named sequences (id, name, description, step count)
-- \`runNamedSequence\` — run a saved sequence by ID (use listSequences first)
+- \`listSequences\` — all saved named sequences with full step details (id, name, description, steps)
+- \`runNamedSequence\` — run a saved sequence by ID (use listSequences first to find ID and understand steps)
+- \`createSequence\` — analyze a workflow description and save it as a named sequence
 `;
 
   // On Edit page: show a brief editor header (directory + open tabs) so the model
@@ -144,6 +145,8 @@ You have tools to inspect the current application state on demand. Use these whe
 You have tools available to modify the application state. Use them when the user asks you to change settings, beats, chapters, genres, weights, or other app state. Always explain what you're doing before calling a tool. When you need IDs (beat IDs, chapter IDs), call the appropriate getter first to find them. Keep dimension values within their valid ranges. Be conversational and helpful — you're a writing partner, not just a tool.
 
 **RULE: When asked to write 2 or more chapters or documents, call runSequence instead of writing them all in one response. Each step's task field must be self-contained: include character names, POV, beat brief, word target, and any relevant story details.**
+
+**RULE: When asked to analyze a workflow or process and turn it into a sequence, use createSequence to save it.**
 `;
   } else {
     prompt += `
@@ -230,8 +233,28 @@ Always write the COMPLETE revised text — never partial content or diffs.
 - {"type": "listPromptTools"} — List all custom prompts available as tools
 - {"type": "spawnAgent", "agentId": "<ai_project_name>", "task": "<task description>", "inputs": {...}, "provider": "<optional>", "model": "<optional>"} — Spawn an AI Project agent to perform a task
 - {"type": "runPrompt", "promptId": "<prompt_id>", "inputs": {"<var>": "<value>"}, "provider": "<optional>", "model": "<optional>"} — Execute a custom prompt as a tool
-- {"type": "listSequences"} — list all saved named sequences
+- {"type": "listSequences"} — list all saved named sequences with full step details
 - {"type": "runNamedSequence", "sequenceId": "<id>", "userInputs": {"<var>": "<value>"}} — run a named sequence by ID
+- {"type": "createSequence", "name": "<name>", "description": "<desc>", "steps": [...]} — analyze a workflow and save it as a named sequence
+
+**Sequence Step Schema** (for createSequence):
+Each step is an object. Three step types:
+
+*action* (writes a file): \`{"id": "step_1", "type": "action", "name": "<label>", "template": "<task prompt — use {{variable}} for inputs>", "outputFile": "chapters/01-intro.md", "chain": false}\`
+- \`chain: true\` — pass this step's output as context into the next step
+- \`modelOverride\` — optional model ID string
+- \`promptRef\` — use a saved prompt ID as the template instead of writing template inline
+
+*condition* (yes/no branch): \`{"id": "step_2", "type": "condition", "name": "<label>", "template": "<question for AI to evaluate>", "ifYes": "continue", "ifNo": "end"}\`
+- \`ifYes\` / \`ifNo\`: "continue" | "end" | step index number to jump to
+
+*loop* (repeat sub-steps N times): \`{"id": "step_3", "type": "loop", "name": "<label>", "count": 3, "iterations": [<action steps using {{loop_index}} and ## in outputFile>]}\`
+- Use \`##\` in outputFile for zero-padded iteration number (e.g. "chapters/chapter-##.md")
+- Use \`{{loop_index}}\` in template for 0-based index, \`{{loop_count}}\` for total
+
+Template variables: \`{{variable_name}}\` resolved from userInputs when sequence runs.
+
+**RULE: When asked to analyze a workflow and create a sequence, call createSequence. Describe what you're building first, then save it.**
 
 ### Rules
 1. Always explain what you're doing BEFORE the action block.
@@ -554,8 +577,9 @@ You have tools to inspect the current application state on demand. Use these **o
 - \`getChapters\` — chapter list with scores, status, word counts
 - \`getRevisionChecklist\` — revision items with checked state
 - \`getEditorContents\` — open editor pane contents (files, word counts, full text)
-- \`listSequences\` — all saved named sequences
+- \`listSequences\` — all saved named sequences with full step details
 - \`runNamedSequence\` — run a saved sequence by ID
+- \`createSequence\` — analyze a workflow and save it as a named sequence
 
 **Important:** Only call getters when you need specific data to answer the user's question or perform a requested action. Do NOT gather all state at the start of a conversation. Do NOT call readProjectFile proactively before writing — only call it when the user explicitly asks you to reference a specific file. When asked to write, draft, or revise any chapter or file content, you MUST call \`writeFile\` or \`writeArtifact\` to save it to disk — never output file content as text in chat. When you write a file, your chat response must be at most one sentence confirming the filename and word count.
 `;
