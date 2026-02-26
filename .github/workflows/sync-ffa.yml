@@ -1,0 +1,19 @@
+name: Sync to Future-Fiction-Academy
+
+on:
+  schedule:
+    - cron: '0 10 * * *'  # 3am MST (4am MDT)
+  workflow_dispatch:       # allow manual trigger from GitHub Actions tab
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history
+
+      - name: Push to Future-Fiction-Academy
+        run: |
+          git remote add ffa https://x-access-token:${{ secrets.FFA_PAT }}@github.com/Future-Fiction-Academy/Arcwright.git
+          git push ffa main --force
