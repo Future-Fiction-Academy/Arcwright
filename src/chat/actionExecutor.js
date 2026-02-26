@@ -564,10 +564,10 @@ export const ACTION_HANDLERS = {
         if (match.cachedContent) {
           return formatResult(match.cachedContent, match.title || match.path);
         }
-        // Otherwise try reading with the stored path
+        // Otherwise try reading with the stored path (strip legacy "Arcwrite/" prefix if present)
         if (arcwriteHandle && match.path) {
           try {
-            const content = await readFileByPath(arcwriteHandle, match.path);
+            const content = await readFileByPath(arcwriteHandle, match.path.replace(/^Arcwrite\//i, ''));
             return formatResult(content, match.title || match.path);
           } catch (_) { /* fall through */ }
         }
