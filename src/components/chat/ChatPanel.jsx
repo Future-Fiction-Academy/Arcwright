@@ -421,7 +421,7 @@ export default function ChatPanel() {
                 }`}
                 title="View system prompt"
               >
-                Prompt
+                Mode
               </button>
               <button
                 onClick={() => setShowPromptManager(true)}
