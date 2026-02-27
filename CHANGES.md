@@ -65,6 +65,70 @@ Tracks significant changes, architectural decisions, and bug fixes. Most recent 
 
 ---
 
+## 2026-02-26
+
+### Prompts Management
+
+**Changes:**
+- Chat `/` slash menu extended to include user prompts alongside sequences. Selecting a prompt inserts its template text into the input box without auto-sending; sequences still execute immediately. Results grouped under "Sequences" / "Prompts" section headers.
+- "Prompts" button added to chat panel header — opens `PromptEditorDialog` for create/edit/delete without needing to be inside a document editor.
+- `InlineEditPopup` (editor): selecting a preset or custom prompt now shows an editable preview step — template variables resolved against current selection context, presented in a textarea with Run / Cancel before submission.
+
+**Files:** `src/components/chat/ChatPanel.jsx`, `src/components/edit/InlineEditPopup.jsx`
+
+---
+
+### Mermaid Diagrams in Help
+
+**Changes:**
+- Sequences tab in Help page: replaced ASCII `DiagramBox` placeholders with live `MermaidDiagram` flowcharts — seq-flow (4-step sequence), seq-exit-loop (exit-condition loop), seq-condition (branching condition with retry).
+
+**Files:** `src/components/layout/HelpPage.jsx`
+
+---
+
+### Scaffold: Live Tension Readout
+
+**Problem:** Changing a dimension slider in the scaffold beat editor caused no visible change to the TENSION (derived) line. The formula is correct — the normalization against all-channels-at-maximum means a full-range stakes change moves tension by ~1 unit on a 0-10 scale, which is visually subtle.
+
+**Changes:**
+- `BeatEditorRow` collapsed header: shows `T:x.x` badge (green-tinted red) next to the dimension swatches.
+- `BeatEditorRow` expanded view: "Tension:" label with a live mini progress bar and numeric score above the dimension sliders — updates instantly as sliders move.
+
+**Files:** `src/components/scaffolding/BeatEditorRow.jsx`
+
+---
+
+### Bug Fixes
+
+**AI project support files not loading (Nova):**
+- Stored paths in `project.json` include a leading `Arcwrite/` prefix (e.g. `Arcwrite/projects/ai/...`). `readFileByPath` is called with `arcwriteHandle` already at the Arcwrite root, so the traversal was failing on the `Arcwrite/` segment. The incoming `path` arg was already stripped but the matched file's stored path was passed raw.
+- Fix: strip `Arcwrite/` prefix from `match.path` before calling `readFileByPath`.
+- **File:** `src/chat/actionExecutor.js`
+
+**Book file path resolution (✗ → retry pattern):**
+- Book files are stored at `projects/books/{Name}/{Name}.md` but the AI was requesting `projects/books/{Name}.md`. Try 1 always failed (that path resolves to a directory), forcing an AI retry with the bare filename.
+- Fix: added Try 1.5 — detects `projects/books/*.md` pattern and rewrites to the nested form before falling through.
+- **File:** `src/chat/actionExecutor.js`
+
+**Chat draft input lost on pane switch:**
+- `ChatPanel` unmounts completely when toggled closed. Input was local `useState`, so any draft was lost when switching to Files and back.
+- Fix: moved `input` to `useChatStore` as `draftInput` / `setDraftInput`.
+- **Files:** `src/store/useChatStore.js`, `src/components/chat/ChatPanel.jsx`
+
+---
+
+### UI Tweaks
+
+- **Tool-capable model indicator:** Model names in the provider model list render in green when `supportedParameters` includes `'tools'`.
+- **AI label:** Chat panel header "AI" label gets a green background when the active model supports tools and tools are enabled.
+- **"Prompt" → "Mode":** The system prompt / agent switcher button in the chat header renamed from "Prompt" to "Mode".
+- **GitHub Action:** `.github/workflows/sync-ffa.yml` — syncs `main` to `Future-Fiction-Academy/Arcwright` daily at 3 am MT; both repos also configured as push targets on `origin`.
+
+**Files:** `src/components/settings/ProviderCard.jsx`, `src/components/chat/ChatPanel.jsx`, `.github/workflows/sync-ffa.yml`
+
+---
+
 ## Known Issues / Watch List
 
 - `projects/ai/` directory still exists on disk (now empty). Safe to delete manually.
