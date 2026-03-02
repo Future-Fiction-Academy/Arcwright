@@ -22,14 +22,31 @@ function htmlToText(html) {
   return doc.body.textContent?.trim() || '';
 }
 
-/** Split text into paragraphs. Tries double-newline first, falls back to single. */
+/**
+ * Split text into diff units (line-level).
+ * Uses single newlines for fine-grained alignment so that sentences
+ * match independently even when the AI revision regroups paragraphs.
+ * Empty lines are preserved as blank markers for visual spacing.
+ */
 function toParagraphs(text) {
-  let paras = text.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
-  // If we got only 1 paragraph but the text has line breaks, split on single \n
-  if (paras.length <= 1 && text.includes('\n')) {
-    paras = text.split(/\n/).map((p) => p.trim()).filter(Boolean);
+  // Split on every newline; keep blank lines as empty strings for spacing
+  const lines = text.split('\n').map((l) => l.trim());
+  // Collapse runs of blank lines into a single blank marker
+  const result = [];
+  let prevBlank = false;
+  for (const line of lines) {
+    if (!line) {
+      if (!prevBlank) result.push(''); // blank line marker (paragraph break)
+      prevBlank = true;
+    } else {
+      prevBlank = false;
+      result.push(line);
+    }
   }
-  return paras;
+  // Remove leading/trailing blank markers
+  while (result.length > 0 && result[0] === '') result.shift();
+  while (result.length > 0 && result[result.length - 1] === '') result.pop();
+  return result;
 }
 
 /**
@@ -100,7 +117,16 @@ export default function DiffView({ leftContent, rightContent, colors, onUpdateLe
 
   const { rows, stats } = useMemo(() => {
     const ops = diffArrays(leftParas, rightParas, {
-      comparator: (a, b) => a === b || wordOverlap(a, b) > 0.4,
+      comparator: (a, b) => {
+        if (a === b) return true;
+        // Blank line markers always match each other
+        if (a === '' || b === '') return a === b;
+        // Don't pair lines with wildly different lengths (>3x difference)
+        const lenRatio = Math.min(a.length, b.length) / Math.max(a.length, b.length);
+        if (lenRatio < 0.2) return false;
+        // Fuzzy match for substantially rewritten lines
+        return wordOverlap(a, b) > 0.2;
+      },
     });
 
     const rows = [];
@@ -212,7 +238,7 @@ export default function DiffView({ leftContent, rightContent, colors, onUpdateLe
         // Skip 'added' rows — they don't exist in the left document
       }
     }
-    onUpdateLeft(newParas.join('\n\n'));
+    onUpdateLeft(newParas.join('\n'));
   }, [rows, onUpdateLeft]);
 
   // Keep original: copy left paragraph into the right document at this row
@@ -244,19 +270,19 @@ export default function DiffView({ leftContent, rightContent, colors, onUpdateLe
         // Skip 'removed' rows — they don't exist in the right document
       }
     }
-    onUpdateRight(newParas.join('\n\n'));
+    onUpdateRight(newParas.join('\n'));
   }, [rows, onUpdateRight]);
 
   // Bulk: accept all revisions into the left document
   const handleAcceptAll = useCallback(() => {
     if (!onUpdateLeft) return;
-    onUpdateLeft(rightParas.join('\n\n'));
+    onUpdateLeft(rightParas.join('\n'));
   }, [rightParas, onUpdateLeft]);
 
   // Bulk: reject all revisions (push original into right)
   const handleRejectAll = useCallback(() => {
     if (!onUpdateRight) return;
-    onUpdateRight(leftParas.join('\n\n'));
+    onUpdateRight(leftParas.join('\n'));
   }, [leftParas, onUpdateRight]);
 
   // Inline edit: rebuild the document when a cell is edited and blurred
@@ -287,7 +313,7 @@ export default function DiffView({ leftContent, rightContent, colors, onUpdateLe
           }
         }
       }
-      onUpdateLeft(newParas.join('\n\n'));
+      onUpdateLeft(newParas.join('\n'));
     } else {
       if (!onUpdateRight) return;
       if (text === (row.rightText || '')) return; // unchanged
@@ -311,7 +337,7 @@ export default function DiffView({ leftContent, rightContent, colors, onUpdateLe
           }
         }
       }
-      onUpdateRight(newParas.join('\n\n'));
+      onUpdateRight(newParas.join('\n'));
     }
   }, [rows, onUpdateLeft, onUpdateRight]);
 
@@ -351,7 +377,7 @@ export default function DiffView({ leftContent, rightContent, colors, onUpdateLe
           }
         }
       }
-      onUpdateLeft(newLeftParas.join('\n\n'));
+      onUpdateLeft(newLeftParas.join('\n'));
     }
 
     // Restore right document with original right text
@@ -368,7 +394,7 @@ export default function DiffView({ leftContent, rightContent, colors, onUpdateLe
           }
         }
       }
-      onUpdateRight(newRightParas.join('\n\n'));
+      onUpdateRight(newRightParas.join('\n'));
     }
 
     // Remove from history
@@ -449,6 +475,24 @@ export default function DiffView({ leftContent, rightContent, colors, onUpdateLe
       <div className="flex-1 overflow-y-auto" style={{ background: c.bg }}>
         {rows.map((row, idx) => {
           const isChange = row.type !== 'equal';
+          // Blank-line markers render as thin spacer rows
+          const isBlankRow = row.type === 'equal' && row.leftText === '' && row.rightText === '';
+          if (isBlankRow) {
+            return (
+              <div
+                key={idx}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: gridCols,
+                  height: 12,
+                }}
+              >
+                <div style={{ background: c.bg }} />
+                <div style={{ background: c.bg }} />
+                <div style={{ background: c.bg }} />
+              </div>
+            );
+          }
           return (
             <div
               key={idx}
@@ -553,8 +597,8 @@ export default function DiffView({ leftContent, rightContent, colors, onUpdateLe
                   >
                     {/* 3/4 circle arrow icon */}
                     <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-                      <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
-                      <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                      <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
+                      <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
                     </svg>
                   </button>
                 )}

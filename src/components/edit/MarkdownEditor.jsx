@@ -351,6 +351,14 @@ export default function MarkdownEditor() {
     secondaryRef.current.innerHTML = markdownToHtml(secondaryTab?.content || '');
   }, [secondaryTabId, dualPane, isCodeSecondary, diffMode]);
 
+  // Streaming sync: update secondary pane DOM when content changes externally (revision pipeline)
+  // Only fires when the secondary pane is NOT focused (user isn't manually editing it)
+  useEffect(() => {
+    if (!dualPane || !secondaryRef.current || !secondaryTab || isCodeSecondary) return;
+    if (document.activeElement === secondaryRef.current) return; // user is editing — don't overwrite
+    secondaryRef.current.innerHTML = markdownToHtml(secondaryTab?.content || '');
+  }, [secondaryTab?.content]);
+
   const handleContentInput = useCallback((ref, tabId) => {
     if (ref?.current && tabId) updateTabContent(tabId, ref.current.innerHTML);
     checkSlashCommand(ref);
@@ -712,7 +720,7 @@ export default function MarkdownEditor() {
             onMouseEnter={(e) => { if (!showSearchBar) { e.currentTarget.style.color = c.toolbarBtnHover; e.currentTarget.style.background = c.toolbarBtnHoverBg; } }}
             onMouseLeave={(e) => { if (!showSearchBar) { e.currentTarget.style.color = c.toolbarBtn; e.currentTarget.style.background = 'transparent'; } }}
           >
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" /></svg>
           </button>
           <button
             onClick={() => setShowRevisionModal(true)}
@@ -831,97 +839,97 @@ export default function MarkdownEditor() {
           onUpdateRight={(content) => updateTabContent(secondaryTabId, content)}
         />
       ) : (
-      <div ref={editorContainerRef} className="flex-1 flex min-h-0">
-        {isCodePrimary ? (
-          <CodePane
-            content={activeTab?.content || ''}
-            tabId={activeTabId}
-            updateTabContent={updateTabContent}
-            colors={c}
-            isDark={t.family === 'dark'}
-            fileName={activeTab?.title || ''}
-            style={{
-              width: dualPane ? `${splitPercent}%` : '100%',
-              flexShrink: 0, minHeight: 0,
-              borderTop: dualPane ? `2px solid ${focusedPane === 'primary' ? '#7C3AED' : 'transparent'}` : 'none',
-            }}
-            onFocus={() => { setFocusedPane('primary'); setSelectionRect(null); setSlashMenu(null); }}
-          />
-        ) : (
-          <div
-            ref={primaryRef}
-            contentEditable
-            suppressContentEditableWarning
-            onInput={() => handleContentInput(primaryRef, activeTabId)}
-            onPaste={handlePaste}
-            onScroll={() => handleScroll('primary')}
-            onMouseDown={() => { setFocusedPane('primary'); setSelectionRect(null); setSlashMenu(null); }}
-            onMouseUp={handleEditorMouseUp}
-            onKeyUp={handleEditorMouseUp}
-            onKeyDown={handleEditorKeyDown}
-            onFocus={() => setFocusedPane('primary')}
-            className="editor-content font-mono text-sm p-4 outline-none leading-relaxed overflow-y-auto"
-            style={{
-              background: c.bg, color: c.text, caretColor: c.caret,
-              width: dualPane ? `${splitPercent}%` : '100%',
-              flexShrink: 0, minHeight: 0,
-              borderTop: dualPane ? `2px solid ${focusedPane === 'primary' ? '#7C3AED' : 'transparent'}` : 'none',
-            }}
-            data-placeholder="Start writing..."
-            spellCheck={true}
-          />
-        )}
-
-        {dualPane && (
-          <>
-            <div
-              onMouseDown={() => { paneDragging.current = true; }}
-              onDoubleClick={() => setSplitPercent(50)}
-              className="w-1.5 shrink-0 cursor-col-resize transition-colors"
-              style={{ background: c.chromeText, opacity: 0.4 }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; }}
-              onMouseLeave={(e) => { if (!paneDragging.current) e.currentTarget.style.opacity = '0.4'; }}
+        <div ref={editorContainerRef} className="flex-1 flex min-h-0">
+          {isCodePrimary ? (
+            <CodePane
+              content={activeTab?.content || ''}
+              tabId={activeTabId}
+              updateTabContent={updateTabContent}
+              colors={c}
+              isDark={t.family === 'dark'}
+              fileName={activeTab?.title || ''}
+              style={{
+                width: dualPane ? `${splitPercent}%` : '100%',
+                flexShrink: 0, minHeight: 0,
+                borderTop: dualPane ? `2px solid ${focusedPane === 'primary' ? '#7C3AED' : 'transparent'}` : 'none',
+              }}
+              onFocus={() => { setFocusedPane('primary'); setSelectionRect(null); setSlashMenu(null); }}
             />
-            {isCodeSecondary ? (
-              <CodePane
-                content={secondaryTab?.content || ''}
-                tabId={secondaryTabId}
-                updateTabContent={updateTabContent}
-                colors={c}
-                isDark={t.family === 'dark'}
-                fileName={secondaryTab?.title || ''}
-                style={{
-                  flex: 1, minWidth: 0, minHeight: 0,
-                  borderTop: `2px solid ${focusedPane === 'secondary' ? '#7C3AED' : 'transparent'}`,
-                }}
-                onFocus={() => { setFocusedPane('secondary'); setSelectionRect(null); setSlashMenu(null); }}
-              />
-            ) : (
+          ) : (
+            <div
+              ref={primaryRef}
+              contentEditable
+              suppressContentEditableWarning
+              onInput={() => handleContentInput(primaryRef, activeTabId)}
+              onPaste={handlePaste}
+              onScroll={() => handleScroll('primary')}
+              onMouseDown={() => { setFocusedPane('primary'); setSelectionRect(null); setSlashMenu(null); }}
+              onMouseUp={handleEditorMouseUp}
+              onKeyUp={handleEditorMouseUp}
+              onKeyDown={handleEditorKeyDown}
+              onFocus={() => setFocusedPane('primary')}
+              className="editor-content font-mono text-sm p-4 outline-none leading-relaxed overflow-y-auto"
+              style={{
+                background: c.bg, color: c.text, caretColor: c.caret,
+                width: dualPane ? `${splitPercent}%` : '100%',
+                flexShrink: 0, minHeight: 0,
+                borderTop: dualPane ? `2px solid ${focusedPane === 'primary' ? '#7C3AED' : 'transparent'}` : 'none',
+              }}
+              data-placeholder="Start writing..."
+              spellCheck={true}
+            />
+          )}
+
+          {dualPane && (
+            <>
               <div
-                ref={secondaryRef}
-                contentEditable={!!secondaryTab}
-                suppressContentEditableWarning
-                onInput={() => handleContentInput(secondaryRef, secondaryTabId)}
-                onPaste={handlePaste}
-                onScroll={() => handleScroll('secondary')}
-                onMouseDown={() => { setFocusedPane('secondary'); setSelectionRect(null); setSlashMenu(null); }}
-                onMouseUp={handleEditorMouseUp}
-                onKeyUp={handleEditorMouseUp}
-                onKeyDown={handleEditorKeyDown}
-                onFocus={() => setFocusedPane('secondary')}
-                className="editor-content font-mono text-sm p-4 outline-none leading-relaxed overflow-y-auto"
-                style={{
-                  background: c.bg, color: c.text, caretColor: c.caret,
-                  flex: 1, minWidth: 0, minHeight: 0,
-                  borderTop: `2px solid ${focusedPane === 'secondary' ? '#7C3AED' : 'transparent'}`,
-                }}
-                data-placeholder="Click a file to open in this pane..."
-                spellCheck={true}
+                onMouseDown={() => { paneDragging.current = true; }}
+                onDoubleClick={() => setSplitPercent(50)}
+                className="w-1.5 shrink-0 cursor-col-resize transition-colors"
+                style={{ background: c.chromeText, opacity: 0.4 }}
+                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; }}
+                onMouseLeave={(e) => { if (!paneDragging.current) e.currentTarget.style.opacity = '0.4'; }}
               />
-            )}
-          </>
-        )}
-      </div>
+              {isCodeSecondary ? (
+                <CodePane
+                  content={secondaryTab?.content || ''}
+                  tabId={secondaryTabId}
+                  updateTabContent={updateTabContent}
+                  colors={c}
+                  isDark={t.family === 'dark'}
+                  fileName={secondaryTab?.title || ''}
+                  style={{
+                    flex: 1, minWidth: 0, minHeight: 0,
+                    borderTop: `2px solid ${focusedPane === 'secondary' ? '#7C3AED' : 'transparent'}`,
+                  }}
+                  onFocus={() => { setFocusedPane('secondary'); setSelectionRect(null); setSlashMenu(null); }}
+                />
+              ) : (
+                <div
+                  ref={secondaryRef}
+                  contentEditable={!!secondaryTab}
+                  suppressContentEditableWarning
+                  onInput={() => handleContentInput(secondaryRef, secondaryTabId)}
+                  onPaste={handlePaste}
+                  onScroll={() => handleScroll('secondary')}
+                  onMouseDown={() => { setFocusedPane('secondary'); setSelectionRect(null); setSlashMenu(null); }}
+                  onMouseUp={handleEditorMouseUp}
+                  onKeyUp={handleEditorMouseUp}
+                  onKeyDown={handleEditorKeyDown}
+                  onFocus={() => setFocusedPane('secondary')}
+                  className="editor-content font-mono text-sm p-4 outline-none leading-relaxed overflow-y-auto"
+                  style={{
+                    background: c.bg, color: c.text, caretColor: c.caret,
+                    flex: 1, minWidth: 0, minHeight: 0,
+                    borderTop: `2px solid ${focusedPane === 'secondary' ? '#7C3AED' : 'transparent'}`,
+                  }}
+                  data-placeholder="Click a file to open in this pane..."
+                  spellCheck={true}
+                />
+              )}
+            </>
+          )}
+        </div>
       )}
 
       {/* Status bar with prominent save */}

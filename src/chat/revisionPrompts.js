@@ -13,7 +13,10 @@ RULES:
 4. Apply the revision guidance provided to adjust narrative dimensions through prose craft: word choice, pacing, interiority, dialogue subtext, physical detail, and scene structure.
 5. Keep approximately the same word count (within 10%).
 6. Preserve any markdown formatting (headings, emphasis, etc.).
-7. Do not include any text before or after the revised chapter.`;
+7. Do not include any text before or after the revised chapter.
+8. Make SUBSTANTIVE prose improvements. Trivial changes (curly vs straight quotes, punctuation normalization, parentheses substitution) are NOT acceptable as the only edits. Every paragraph should show meaningful craft improvement.
+9. Rewrite weak sentences entirely rather than making minimal word swaps. Strengthen verbs, sharpen imagery, deepen subtext, vary rhythm.
+10. NEVER use em-dashes (—) or double hyphens (--) in prose. The ONLY exception is for dialogue interruptions where a character's speech is cut off mid-word (e.g., "I can't believe you—"). For parenthetical asides, appositives, or clause breaks, use commas, semicolons, colons, or restructure the sentence instead. Do NOT substitute dashes for commas.`;
 }
 
 /**
@@ -54,22 +57,26 @@ export function buildRevisionUserPrompt(chapterText, source, analysisData) {
     }
   }
 
-  if (source === 'custom') {
+  if (source === 'custom' && analysisData.customPrompt?.trim()) {
     guidance += '## Revision Instructions\n\n';
     guidance += analysisData.customPrompt + '\n\n';
   }
 
-  // Fallback: if no specific guidance was generated, provide default revision instructions
+  // Fallback: if no specific guidance was generated, provide aggressive revision instructions
   if (!guidance.trim()) {
     guidance = `## Revision Focus
 
-No specific dimension gaps were detected for this chapter, but please apply these general improvements:
+No specific dimension analysis is available for this chapter. Apply aggressive prose-level revision across all of the following areas. Every paragraph should be meaningfully improved — do NOT limit changes to punctuation or quote style.
 
-1. **Prose Polish**: Tighten sentence structure, eliminate unnecessary words, and vary sentence rhythm
-2. **Show Don't Tell**: Convert any telling passages into vivid sensory details and character actions
-3. **Dialogue Enhancement**: Ensure dialogue sounds natural, has subtext, and reveals character
-4. **Pacing**: Check that scene momentum matches the emotional beats — speed up action, slow down for emotional moments
-5. **Interiority**: Deepen character internal thoughts where appropriate for POV
+1. **Verb Strength**: Replace weak/generic verbs (was, had, went, got, looked, felt) with precise, vivid alternatives. "She felt angry" → show the anger through action and body language.
+2. **Sensory Detail**: Layer in at least two senses per scene beat. Ground abstract emotions in concrete physical sensation — texture, temperature, smell, sound.
+3. **Sentence Rhythm**: Vary sentence length deliberately. Follow long complex sentences with short punchy ones. Break up same-length sentence chains. Use fragments for emphasis.
+4. **Dialogue Subtext**: Characters should rarely say exactly what they mean. Add subtext through deflection, non-sequiturs, and what goes unsaid. Cut on-the-nose dialogue.
+5. **Interiority Depth**: Deepen POV character's interior life — layer thought with sensation, memory, and impulse. Avoid surface-level emotional labels ("she was sad").
+6. **Eliminate Filtering**: Remove filter words that distance the reader: "she saw", "he noticed", "she felt", "he heard", "she realized". Present the perception directly.
+7. **Tighten Prose**: Cut redundancy, unnecessary adverbs, empty intensifiers (very, really, quite, just), and throat-clearing phrases. Every word must earn its place.
+8. **Scene Transitions**: Strengthen paragraph-to-paragraph flow. Cut dead air between action beats. Enter scenes late, leave early.
+9. **Metaphor & Imagery**: Replace clichéd comparisons with fresh, unexpected imagery that fits the character's worldview and the story's tonal register.
 
 `;
   }

@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import useAppStore from '../../store/useAppStore';
 import useEditorStore from '../../store/useEditorStore';
-import useProjectStore from '../../store/useProjectStore';
+
 import useClaudeAnalysis from '../../hooks/useClaudeAnalysis';
 import { PROVIDERS } from '../../api/providers';
 import { buildFileTree } from '../edit/FilePanel';
@@ -25,11 +25,10 @@ function ComparisonModeToggle() {
   const hasScaffold = scaffoldBeats.length > 0;
 
   return (
-    <div className={`rounded-lg p-4 mb-6 border-2 transition-all ${
-      useScaffoldAsIdeal
-        ? 'bg-teal-900/40 border-teal-500'
-        : 'bg-purple-900/40 border-purple-500'
-    }`}>
+    <div className={`rounded-lg p-4 mb-6 border-2 transition-all ${useScaffoldAsIdeal
+      ? 'bg-teal-900/40 border-teal-500'
+      : 'bg-purple-900/40 border-purple-500'
+      }`}>
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <span className="text-sm font-semibold text-white/80">Compare Against:</span>
@@ -38,24 +37,22 @@ function ComparisonModeToggle() {
           <div className="flex rounded-lg overflow-hidden border border-white/20">
             <button
               onClick={() => setUseScaffoldAsIdeal(false)}
-              className={`px-4 py-2 text-sm font-bold transition-all ${
-                !useScaffoldAsIdeal
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-slate-700/50 text-purple-300 hover:bg-slate-700'
-              }`}
+              className={`px-4 py-2 text-sm font-bold transition-all ${!useScaffoldAsIdeal
+                ? 'bg-purple-600 text-white'
+                : 'bg-slate-700/50 text-purple-300 hover:bg-slate-700'
+                }`}
             >
               Genre Ideal
             </button>
             <button
               onClick={() => hasScaffold && setUseScaffoldAsIdeal(true)}
               disabled={!hasScaffold}
-              className={`px-4 py-2 text-sm font-bold transition-all ${
-                useScaffoldAsIdeal
-                  ? 'bg-teal-600 text-white'
-                  : hasScaffold
-                    ? 'bg-slate-700/50 text-teal-300 hover:bg-slate-700'
-                    : 'bg-slate-800/50 text-slate-500 cursor-not-allowed'
-              }`}
+              className={`px-4 py-2 text-sm font-bold transition-all ${useScaffoldAsIdeal
+                ? 'bg-teal-600 text-white'
+                : hasScaffold
+                  ? 'bg-slate-700/50 text-teal-300 hover:bg-slate-700'
+                  : 'bg-slate-800/50 text-slate-500 cursor-not-allowed'
+                }`}
             >
               My Scaffold
             </button>
@@ -63,14 +60,12 @@ function ComparisonModeToggle() {
         </div>
 
         {/* Status Badge */}
-        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold ${
-          useScaffoldAsIdeal
-            ? 'bg-teal-600/80 text-white'
-            : 'bg-purple-600/80 text-white'
-        }`}>
-          <span className={`w-2 h-2 rounded-full animate-pulse ${
-            useScaffoldAsIdeal ? 'bg-teal-300' : 'bg-purple-300'
-          }`} />
+        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold ${useScaffoldAsIdeal
+          ? 'bg-teal-600/80 text-white'
+          : 'bg-purple-600/80 text-white'
+          }`}>
+          <span className={`w-2 h-2 rounded-full animate-pulse ${useScaffoldAsIdeal ? 'bg-teal-300' : 'bg-purple-300'
+            }`} />
           {useScaffoldAsIdeal ? (
             <>Using Your Scaffold ({scaffoldBeats.length} beats)</>
           ) : (
@@ -131,35 +126,22 @@ export default function AnalysisWorkflow() {
     const chaptersWithText = chapters.filter((ch) => ch.text);
     if (chaptersWithText.length === 0) return;
 
-    // Ask for book title
-    const title = window.prompt('Book title for export:');
+    // Ask for book title (used as subfolder name)
+    const title = window.prompt('Folder name for export:');
     if (!title) return;
     const safeTitle = sanitizeFilename(title);
 
     setExporting(true);
     try {
-      // Use Arcwrite/projects/books/ if available, otherwise fall back to directory picker
-      const { arcwriteHandle, isInitialized } = useProjectStore.getState();
-      let booksHandle;
-      let rootForTree;
-
-      if (isInitialized && arcwriteHandle) {
-        const projectsHandle = await arcwriteHandle.getDirectoryHandle('projects', { create: true });
-        booksHandle = await projectsHandle.getDirectoryHandle('books', { create: true });
-        rootForTree = arcwriteHandle;
-      } else {
-        // Fallback: pick a directory
-        let dirHandle = useEditorStore.getState().directoryHandle;
-        if (!dirHandle) {
-          dirHandle = await window.showDirectoryPicker({ mode: 'readwrite', startIn: 'documents' });
-          useEditorStore.getState().setDirectoryHandle(dirHandle);
-        }
-        booksHandle = dirHandle;
-        rootForTree = dirHandle;
+      // Use the currently open editor directory, or pick one
+      let rootHandle = useEditorStore.getState().directoryHandle;
+      if (!rootHandle) {
+        rootHandle = await window.showDirectoryPicker({ mode: 'readwrite', startIn: 'documents' });
+        useEditorStore.getState().setDirectoryHandle(rootHandle);
       }
 
-      // Create book folder under books/
-      const folderHandle = await booksHandle.getDirectoryHandle(safeTitle, { create: true });
+      // Create subfolder under the current open directory
+      const folderHandle = await rootHandle.getDirectoryHandle(safeTitle, { create: true });
 
       // Write each chapter as a .md file
       const pad = chaptersWithText.length >= 100 ? 3 : chaptersWithText.length >= 10 ? 2 : 2;
@@ -172,11 +154,9 @@ export default function AnalysisWorkflow() {
         // Format: ## Chapter N heading, optional POV, paragraphs with blank lines
         let body = `## Chapter ${i + 1}\n\n`;
         if (ch.pov) body += `${ch.pov}\n\n`;
-        // Ensure blank line after each paragraph
-        // Use double-newline split if present, otherwise fall back to single newlines
-        const hasDoubleNewlines = /\n{2,}/.test(ch.text);
+        // Ensure blank line after each paragraph — split on any newline(s)
         const paragraphs = ch.text
-          .split(hasDoubleNewlines ? /\n{2,}/ : /\n/)
+          .split(/\n+/)
           .map((p) => p.trim())
           .filter(Boolean);
         body += paragraphs.join('\n\n') + '\n';
@@ -187,9 +167,8 @@ export default function AnalysisWorkflow() {
         await writable.close();
       }
 
-      // Point editor at the Arcwrite folder and navigate
-      useEditorStore.getState().setDirectoryHandle(rootForTree);
-      const tree = await buildFileTree(rootForTree);
+      // Refresh file tree and navigate to editor
+      const tree = await buildFileTree(rootHandle);
       useEditorStore.getState().setFileTree(tree);
       useEditorStore.getState().setLeftPanelTab('files');
       navigate('/edit');
@@ -208,15 +187,15 @@ export default function AnalysisWorkflow() {
   // Build actual beats for pacing classifier
   const analyzedBeats = hasAnalyzedChapters
     ? chapters
-        .filter((ch) => ch.userScores || ch.aiScores)
-        .map((ch, i) => {
-          const scores = ch.userScores || ch.aiScores || {};
-          return {
-            time: scores.timePercent ?? Math.round(((i + 1) / chapters.length) * 100),
-            intimacy: scores.intimacy ?? 0,
-          };
-        })
-        .sort((a, b) => a.time - b.time)
+      .filter((ch) => ch.userScores || ch.aiScores)
+      .map((ch, i) => {
+        const scores = ch.userScores || ch.aiScores || {};
+        return {
+          time: scores.timePercent ?? Math.round(((i + 1) / chapters.length) * 100),
+          intimacy: scores.intimacy ?? 0,
+        };
+      })
+      .sort((a, b) => a.time - b.time)
     : [];
 
   return (

@@ -192,7 +192,8 @@ async function resolveBookProjectHandle() {
     }
   }
 
-  throw new Error('No book project is active.');
+  // No book project found — return null instead of throwing
+  return null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -265,8 +266,8 @@ export const ACTION_HANDLERS = {
         name: structure?.name,
         beats: structure?.beats
           ? Object.fromEntries(
-              Object.entries(structure.beats).map(([k, b]) => [k, { name: b.name, range: b.range }])
-            )
+            Object.entries(structure.beats).map(([k, b]) => [k, { name: b.name, range: b.range }])
+          )
           : {},
       },
       available: Object.fromEntries(
@@ -358,8 +359,8 @@ export const ACTION_HANDLERS = {
     const editorState = useEditorStore.getState();
     const appState = useAppStore.getState();
     const genre = genreSystem[appState.selectedGenre];
-    const genreName = genre?.name || appState.selectedGenre || 'General Fiction';
-    const subgenreName = genre?.subgenres[appState.selectedSubgenre]?.name || appState.selectedSubgenre || 'General';
+    const genreName = appState.customGenreName || genre?.name || appState.selectedGenre || 'General Fiction';
+    const subgenreName = appState.customSubgenreName || genre?.subgenres[appState.selectedSubgenre]?.name || appState.selectedSubgenre || 'General';
     const structureName = appState.plotStructure || 'threeAct';
 
     const promptBuilders = {
@@ -380,10 +381,12 @@ export const ACTION_HANDLERS = {
       inlineEdit: { label: 'Inline Edit Prompt', build: () => 'You are an inline text editor. The user has selected a passage and given you an editing instruction.\n\nRULES:\n1. Output ONLY the revised text. No preamble, no explanation, no markdown code fences.\n2. Preserve the author\'s voice, style, tone, and register.\n3. Apply the instruction precisely — nothing more, nothing less.\n4. If the instruction is to rewrite or rephrase, keep approximately the same length unless told otherwise.\n5. Maintain any existing formatting (bold, italic, etc.) where appropriate.\n6. Never add commentary like "Here is the revised text:" — just output the text directly.' },
       voiceAnalysis: { label: 'Voice Analysis Prompt', build: () => 'You are a literary voice analyst. Analyze the provided prose sample and produce a structured voice style guide that an AI writing model can use as a reference to match this author\'s voice.\n\nOutput a markdown document with these sections:\n## Voice Signature\n## Sentence Rhythm\n## Internal Voice\n## What Draws Reader In\n## Dialogue\n## Sentence-Level Patterns\n## What to Avoid' },
       // --- AI Project ---
-      aiProject: { label: 'AI Project System Prompt', build: () => {
-        const { activeAiProject } = useProjectStore.getState();
-        return activeAiProject ? buildAiProjectSystemPrompt(activeAiProject, editorState, '/edit') : '(No AI project active — activate one to see its prompt)';
-      }},
+      aiProject: {
+        label: 'AI Project System Prompt', build: () => {
+          const { activeAiProject } = useProjectStore.getState();
+          return activeAiProject ? buildAiProjectSystemPrompt(activeAiProject, editorState, '/edit') : '(No AI project active — activate one to see its prompt)';
+        }
+      },
     };
 
     if (!name || name === 'all') {
@@ -606,10 +609,10 @@ export const ACTION_HANDLERS = {
       const match = activeAiProject.files.find((f) => {
         const q = cleanPath.toLowerCase();
         return (f.path && f.path.toLowerCase() === q) ||
-               (f.title && f.title.toLowerCase() === q) ||
-               (f.path && f.path.toLowerCase().endsWith('/' + q)) ||
-               (f.title && (f.title.toLowerCase() + '.md') === q) ||
-               (f.path && f.path.split('/').pop().toLowerCase() === q);
+          (f.title && f.title.toLowerCase() === q) ||
+          (f.path && f.path.toLowerCase().endsWith('/' + q)) ||
+          (f.title && (f.title.toLowerCase() + '.md') === q) ||
+          (f.path && f.path.split('/').pop().toLowerCase() === q);
       });
       if (match) {
         // Serve from cached content if available
@@ -700,8 +703,19 @@ export const ACTION_HANDLERS = {
     const cleanFilename = filename.replace(/[/\\]/g, '').trim();
     if (!cleanFilename) throw new Error('Invalid filename');
 
-    // 1. Get or create a book project
-    const bookProjectHandle = await resolveBookProjectHandle();
+    // 1. Get book project handle, falling back to editor directory
+    let bookProjectHandle = await resolveBookProjectHandle();
+    if (!bookProjectHandle) {
+      // Fall back to the editor's currently open directory
+      bookProjectHandle = useEditorStore.getState().directoryHandle;
+    }
+    if (!bookProjectHandle) {
+      // No directory available at all — show content in an in-memory tab
+      const words = content.trim().split(/\s+/).filter(Boolean).length;
+      const tabId = `artifacts/${cleanFilename}`;
+      useEditorStore.getState().openTab(tabId, cleanFilename, content, null);
+      return `No book project or directory is open. Showing "${cleanFilename}" in editor as in-memory tab (${words.toLocaleString()} words). Open a book project to persist artifacts to disk.`;
+    }
 
     // 2. Get/create artifacts/ directory
     const artifactsDir = await bookProjectHandle.getDirectoryHandle('artifacts', { create: true });
@@ -1094,7 +1108,7 @@ export const ACTION_HANDLERS = {
             `Words: ${wordCount.toLocaleString()}\n\n`
           );
 
-        // ── Condition step ───────────────────────────────────────────────────
+          // ── Condition step ───────────────────────────────────────────────────
         } else if (type === 'condition') {
           const condName = step.name || `Condition ${i + 1}`;
           let question = step.template || '';
@@ -1126,7 +1140,7 @@ export const ACTION_HANDLERS = {
             `## ${_logTs()} — ${condName} [condition]\nDecision: ${decision}\n\n`
           );
 
-        // ── Loop step ────────────────────────────────────────────────────────
+          // ── Loop step ────────────────────────────────────────────────────────
         } else if (type === 'loop') {
           const fixedCount = step.count ?? null;
           const maxIter = step.count ?? (step.maxIterations ?? 20);
@@ -1236,9 +1250,8 @@ export const ACTION_HANDLERS = {
     await _seqAppendLog(logPath,
       `---\n**Completed**: ${_logTs()} · ${totalWords.toLocaleString()} total words\n`
     );
-    return `Sequence "${sequence.name}" complete: ${sequence.steps.length} step${sequence.steps.length !== 1 ? 's' : ''}, ${totalWords.toLocaleString()} total words.\n${
-      results.map((r) => `- ${r.step}${r.outputFile ? ` → \`${r.outputFile}\`` : ''} (${r.wordCount.toLocaleString()} words)`).join('\n')
-    }`;
+    return `Sequence "${sequence.name}" complete: ${sequence.steps.length} step${sequence.steps.length !== 1 ? 's' : ''}, ${totalWords.toLocaleString()} total words.\n${results.map((r) => `- ${r.step}${r.outputFile ? ` → \`${r.outputFile}\`` : ''} (${r.wordCount.toLocaleString()} words)`).join('\n')
+      }`;
   },
 
   // --- Sequence writing ---
@@ -1291,9 +1304,8 @@ export const ACTION_HANDLERS = {
     }
 
     const totalWords = results.reduce((s, r) => s + r.wordCount, 0);
-    return `Sequence complete: ${steps.length} file${steps.length !== 1 ? 's' : ''} written, ${totalWords.toLocaleString()} total words.\n${
-      results.map((r) => `- \`${r.outputFile}\` (${r.wordCount.toLocaleString()} words)`).join('\n')
-    }`;
+    return `Sequence complete: ${steps.length} file${steps.length !== 1 ? 's' : ''} written, ${totalWords.toLocaleString()} total words.\n${results.map((r) => `- \`${r.outputFile}\` (${r.wordCount.toLocaleString()} words)`).join('\n')
+      }`;
   },
 };
 

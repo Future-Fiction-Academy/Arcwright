@@ -86,7 +86,7 @@ export default function EditWorkflow() {
       />
 
       {/* Editor area */}
-      <div className="flex-1 min-w-0 flex flex-col bg-slate-900">
+      <div className="flex-1 min-w-0 flex flex-col bg-g-bg">
         <MarkdownEditor />
       </div>
     </div>

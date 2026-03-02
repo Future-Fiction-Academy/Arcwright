@@ -84,17 +84,17 @@ You have tools to inspect the current application state. Current scaffold beats 
 
   // Always inline genre + beats — user may ask about scaffold from any workflow
   {
-    const { scaffoldBeats, selectedGenre, selectedSubgenre, selectedModifier, selectedPacing } = useAppStore.getState();
+    const { scaffoldBeats, selectedGenre, selectedSubgenre, selectedModifier, selectedPacing, customGenreName, customSubgenreName } = useAppStore.getState();
     const genreData = genreSystem[selectedGenre];
     const subgenreData = genreData?.subgenres?.[selectedSubgenre];
     const structureData = plotStructures[genreData?.structure];
 
     if (scaffoldBeats.length > 0) {
-      const DIMS = ['intimacy','trust','tension','stakes','pacing','agency','identity','sensory','worldComplexity','moralAmbiguity','goalAlignment'];
-      const HDR  = ['Int','Tst','Ten','Stk','Pac','Acy','Id','Sen','Wld','Mor','Goa'];
+      const DIMS = ['intimacy', 'trust', 'tension', 'stakes', 'pacing', 'agency', 'identity', 'sensory', 'worldComplexity', 'moralAmbiguity', 'goalAlignment'];
+      const HDR = ['Int', 'Tst', 'Ten', 'Stk', 'Pac', 'Acy', 'Id', 'Sen', 'Wld', 'Mor', 'Goa'];
       const genreParts = [
-        genreData?.name || selectedGenre,
-        subgenreData?.name || selectedSubgenre,
+        customGenreName || genreData?.name || selectedGenre,
+        customSubgenreName || subgenreData?.name || selectedSubgenre,
         selectedModifier,
         selectedPacing,
       ].filter(Boolean);
@@ -121,8 +121,8 @@ You have tools to inspect the current application state. Current scaffold beats 
   {
     const { chapters } = useAppStore.getState();
     if (chapters.length > 0) {
-      const DIMS = ['intimacy','trust','tension','stakes','pacing','agency','identity','sensory','worldComplexity','moralAmbiguity','goalAlignment'];
-      const HDR  = ['Int','Tst','Ten','Stk','Pac','Acy','Id','Sen','Wld','Mor','Goa'];
+      const DIMS = ['intimacy', 'trust', 'tension', 'stakes', 'pacing', 'agency', 'identity', 'sensory', 'worldComplexity', 'moralAmbiguity', 'goalAlignment'];
+      const HDR = ['Int', 'Tst', 'Ten', 'Stk', 'Pac', 'Acy', 'Id', 'Sen', 'Wld', 'Mor', 'Goa'];
       const hasScores = chapters.some((ch) => ch.userScores || ch.aiScores);
       prompt += `\n## Chapter Analysis State\n`;
       prompt += `${chapters.length} chapters loaded:\n\n`;

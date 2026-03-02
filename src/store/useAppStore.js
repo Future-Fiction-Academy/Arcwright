@@ -105,6 +105,8 @@ const useAppStore = create(
       selectedActStructure: genreSystem[initialGenre].structure,
       selectedModifier: '',
       selectedPacing: '',
+      customGenreName: '',
+      customSubgenreName: '',
       applyCompanions: false,
       weights: { ...initialWeights },
       baseWeights: { ...initialWeights },
@@ -158,6 +160,8 @@ const useAppStore = create(
       },
 
       setPacing: (pacing) => set({ selectedPacing: pacing }),
+      setCustomGenreName: (name) => set({ customGenreName: name }),
+      setCustomSubgenreName: (name) => set({ customSubgenreName: name }),
       setApplyCompanions: (v) => set({ applyCompanions: v }),
 
       updateWeight: (key, value) => {
@@ -392,12 +396,12 @@ const useAppStore = create(
           chapters: state.chapters.map((ch) =>
             ch.id === chapterId
               ? {
-                  ...ch,
-                  ...(source === 'ai'
-                    ? { aiScores: scores, userScores: { ...scores } }
-                    : { userScores: scores }),
-                  status: source === 'ai' ? 'analyzed' : 'reviewed',
-                }
+                ...ch,
+                ...(source === 'ai'
+                  ? { aiScores: scores, userScores: { ...scores } }
+                  : { userScores: scores }),
+                status: source === 'ai' ? 'analyzed' : 'reviewed',
+              }
               : ch
           ),
         }));
@@ -434,6 +438,8 @@ const useAppStore = create(
           selectedActStructure: state.selectedActStructure,
           selectedModifier: state.selectedModifier,
           selectedPacing: state.selectedPacing,
+          customGenreName: state.customGenreName,
+          customSubgenreName: state.customSubgenreName,
           applyCompanions: state.applyCompanions,
           weights: state.weights,
           baseWeights: state.baseWeights,

@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import useEditorStore from '../../store/useEditorStore';
+import useProjectStore from '../../store/useProjectStore';
 import FileContextMenu from './FileContextMenu';
 
 const TEXT_EXTENSIONS = new Set(['.md', '.txt', '.markdown', '.mdown', '.mkd', '.json', '.js', '.jsx', '.py']);
@@ -213,6 +214,9 @@ export default function FilePanel() {
     }
   }, [contextPaths, setContextPaths, setContextContent, directoryHandle, fileTree]);
 
+  const bookDirHandle = useProjectStore((s) => s.bookDirHandle);
+  const activeBookProject = useProjectStore((s) => s.activeBookProject);
+
   const [renamingPath, setRenamingPath] = useState(null);
   const [renameValue, setRenameValue] = useState('');
   const [contextMenu, setContextMenu] = useState(null);
@@ -320,6 +324,22 @@ export default function FilePanel() {
     e.preventDefault();
     e.stopPropagation();
     setContextMenu({ x: e.clientX, y: e.clientY, node });
+  }, []);
+
+  const handleCopyPath = useCallback((node) => {
+    const fullPath = directoryHandle
+      ? `${directoryHandle.name}/${node.path}`
+      : node.path;
+    navigator.clipboard.writeText(fullPath).catch(() => { });
+  }, [directoryHandle]);
+
+  const handleSetBookFolder = useCallback((node) => {
+    if (node.type !== 'dir' || !node.handle) return;
+    useProjectStore.setState({
+      bookDirHandle: node.handle,
+      activeBookProject: node.name,
+      activeMode: 'book',
+    });
   }, []);
 
   const supportsFileSystem = typeof window.showDirectoryPicker === 'function';
@@ -626,6 +646,7 @@ export default function FilePanel() {
             onDrop={handleDrop}
             dropTargetPath={dropTargetPath}
             setDropTargetPath={setDropTargetPath}
+            bookFolderPath={activeBookProject ? activeBookProject : null}
           />
         ))}
       </div>
@@ -638,6 +659,8 @@ export default function FilePanel() {
           onClose={() => setContextMenu(null)}
           onRename={(node) => startRename(node.path, node.name)}
           onDelete={handleDelete}
+          onCopyPath={handleCopyPath}
+          onSetBookFolder={handleSetBookFolder}
         />
       )}
     </div>
@@ -662,15 +685,15 @@ function ContextDot({ active, onClick, title }) {
   );
 }
 
-function TreeNode({ node, depth, onToggle, onFileClick, onNewFile, onNewFolder, renamingPath, renameValue, setRenameValue, onStartRename, onCommitRename, contextPaths, onToggleContext, onToggleFolderContext, onContextMenu, selectedPaths, onNodeClick, onDragStart, onDrop, dropTargetPath, setDropTargetPath }) {
+function TreeNode({ node, depth, onToggle, onFileClick, onNewFile, onNewFolder, renamingPath, renameValue, setRenameValue, onStartRename, onCommitRename, contextPaths, onToggleContext, onToggleFolderContext, onContextMenu, selectedPaths, onNodeClick, onDragStart, onDrop, dropTargetPath, setDropTargetPath, bookFolderPath }) {
   const indent = depth * 16;
   const isRenaming = renamingPath === node.path;
   const isSelected = !!selectedPaths[node.path];
   const isDropTarget = dropTargetPath === node.path;
   const selClass = isSelected ? ' bg-blue-100' : '';
 
-  // Common drag props for all node types
-  const dragProps = {
+  // Common drag props — disabled when renaming so text selection works in the input
+  const dragProps = isRenaming ? {} : {
     draggable: true,
     onDragStart: (e) => onDragStart(e, node),
     onDragEnd: () => setDropTargetPath(null),
@@ -718,10 +741,11 @@ function TreeNode({ node, depth, onToggle, onFileClick, onNewFile, onNewFolder, 
   if (node.type === 'dir') {
     const descendantPaths = collectFilePaths(node);
     const allIn = descendantPaths.length > 0 && descendantPaths.every((p) => contextPaths[p]);
+    const isBookFolder = bookFolderPath && node.name === bookFolderPath;
     return (
       <>
         <div
-          className={`group flex items-center gap-1 w-full text-left px-1 py-0.5 text-sm text-gray-600 hover:bg-gray-100 rounded transition-colors${selClass}${isDropTarget ? ' ring-2 ring-blue-400 bg-blue-50' : ''}`}
+          className={`group flex items-center gap-1 w-full text-left px-1 py-0.5 text-sm text-gray-600 hover:bg-gray-100 rounded transition-colors${selClass}${isDropTarget ? ' ring-2 ring-blue-400 bg-blue-50' : ''}${isBookFolder ? ' bg-indigo-50 ring-1 ring-indigo-300' : ''}`}
           style={{ paddingLeft: indent + 4 }}
           onContextMenu={(e) => onContextMenu(e, node)}
           onClick={(e) => onNodeClick(e, node)}
@@ -731,7 +755,7 @@ function TreeNode({ node, depth, onToggle, onFileClick, onNewFile, onNewFolder, 
           <span onClick={(e) => { e.stopPropagation(); onToggle(node.path); }} className="text-xs w-3 text-center text-gray-400 shrink-0 cursor-pointer">
             {node.expanded ? '\u25BE' : '\u25B8'}
           </span>
-          <span className="text-gray-400 shrink-0">{'\uD83D\uDCC1'}</span>
+          <span className="shrink-0">{isBookFolder ? '\uD83D\uDCD6' : '\uD83D\uDCC1'}</span>
           {isRenaming ? (
             <input
               autoFocus
@@ -800,6 +824,7 @@ function TreeNode({ node, depth, onToggle, onFileClick, onNewFile, onNewFolder, 
             onDrop={onDrop}
             dropTargetPath={dropTargetPath}
             setDropTargetPath={setDropTargetPath}
+            bookFolderPath={bookFolderPath}
           />
         ))}
       </>

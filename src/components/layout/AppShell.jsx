@@ -174,7 +174,7 @@ export default function AppShell() {
           <main
             ref={mainPaneRef}
             onMouseEnter={() => { activePaneRef.current = mainPaneRef.current; }}
-            className="flex-1 min-w-0 min-h-0"
+            className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden"
             aria-label="Main content"
           >
             <Outlet />

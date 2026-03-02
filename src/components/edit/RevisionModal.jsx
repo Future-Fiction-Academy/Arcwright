@@ -1,15 +1,37 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import useEditorStore from '../../store/useEditorStore';
 import useAppStore from '../../store/useAppStore';
+import useProjectStore from '../../store/useProjectStore';
 import { getTheme } from './editorThemes';
+import { buildFileTree } from './FilePanel';
 
-/** Flatten a file tree to just text files (type === 'file'). */
-function flattenTextFiles(tree, result = []) {
+const TEXT_EXTENSIONS = new Set(['.md', '.txt', '.markdown', '.mdown', '.mkd']);
+
+/** Check if a file name has a text extension. */
+function isTextFile(name) {
+  const dot = name.lastIndexOf('.');
+  if (dot < 0) return false;
+  return TEXT_EXTENSIONS.has(name.substring(dot).toLowerCase());
+}
+
+/** Collect all text file paths from a tree. */
+function collectTextPaths(tree) {
+  const paths = [];
   for (const node of tree) {
-    if (node.type === 'file') result.push(node);
-    if (node.type === 'dir' && node.children) flattenTextFiles(node.children, result);
+    if (node.type === 'file' && isTextFile(node.name)) paths.push(node.path);
+    if (node.type === 'dir' && node.children) paths.push(...collectTextPaths(node.children));
   }
-  return result;
+  return paths;
+}
+
+/** Collect all text file nodes (flat) from a tree for pipeline submission. */
+function collectTextNodes(tree) {
+  const nodes = [];
+  for (const node of tree) {
+    if (node.type === 'file' && isTextFile(node.name)) nodes.push(node);
+    if (node.type === 'dir' && node.children) nodes.push(...collectTextNodes(node.children));
+  }
+  return nodes;
 }
 
 /**
@@ -18,8 +40,10 @@ function flattenTextFiles(tree, result = []) {
  * The status bar in MarkdownEditor takes over from there.
  */
 export default function RevisionModal({ isOpen, onClose, pipeline }) {
-  const fileTree = useEditorStore((s) => s.fileTree);
+  const editorFileTree = useEditorStore((s) => s.fileTree);
   const editorTheme = useEditorStore((s) => s.editorTheme);
+  const bookDirHandle = useProjectStore((s) => s.bookDirHandle);
+  const activeBookProject = useProjectStore((s) => s.activeBookProject);
   const apiKey = useAppStore((s) => {
     const prov = s.providers[s.activeProvider];
     return prov?.apiKey;
@@ -33,8 +57,21 @@ export default function RevisionModal({ isOpen, onClose, pipeline }) {
   const [revisionSource, setRevisionSource] = useState('both');
   const [customPrompt, setCustomPrompt] = useState('');
   const [pauseBetween, setPauseBetween] = useState(true);
+  const [expandedDirs, setExpandedDirs] = useState(new Set());
+  const [bookTree, setBookTree] = useState([]);
 
-  const textFiles = useMemo(() => flattenTextFiles(fileTree), [fileTree]);
+  // Build a dedicated tree from bookDirHandle when available
+  useEffect(() => {
+    if (!isOpen) return;
+    if (bookDirHandle) {
+      buildFileTree(bookDirHandle).then((tree) => setBookTree(tree));
+    } else {
+      setBookTree([]);
+    }
+  }, [isOpen, bookDirHandle]);
+
+  // The tree to display: book tree if available, otherwise editor tree
+  const displayTree = bookDirHandle ? bookTree : editorFileTree;
 
   const hasAnalysisData =
     revisionItems.length > 0 || chapters.some((ch) => ch.aiScores || ch.userScores);
@@ -53,26 +90,49 @@ export default function RevisionModal({ isOpen, onClose, pipeline }) {
     if (e.target === e.currentTarget) onClose();
   };
 
-  const selectAll = () => setSelectedPaths(new Set(textFiles.map((f) => f.path)));
+  const selectAll = () => setSelectedPaths(new Set(collectTextPaths(displayTree)));
   const deselectAll = () => setSelectedPaths(new Set());
-  const toggleFile = (path) => {
+
+  const toggleFile = useCallback((path) => {
     setSelectedPaths((prev) => {
       const next = new Set(prev);
       next.has(path) ? next.delete(path) : next.add(path);
       return next;
     });
-  };
+  }, []);
+
+  const toggleDir = useCallback((dirNode) => {
+    const childPaths = collectTextPaths(dirNode.children || []);
+    setSelectedPaths((prev) => {
+      const next = new Set(prev);
+      const allIn = childPaths.every((p) => next.has(p));
+      if (allIn) {
+        childPaths.forEach((p) => next.delete(p));
+      } else {
+        childPaths.forEach((p) => next.add(p));
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleExpanded = useCallback((path) => {
+    setExpandedDirs((prev) => {
+      const next = new Set(prev);
+      next.has(path) ? next.delete(path) : next.add(path);
+      return next;
+    });
+  }, []);
 
   const handleStart = () => {
     if (!apiKey) {
       alert('Set your OpenRouter API key in the Analyze workflow first.');
       return;
     }
-    const selectedFiles = textFiles.filter((f) => selectedPaths.has(f.path));
-    if (selectedFiles.length === 0) return;
+    const selectedNodes = collectTextNodes(displayTree).filter((n) => selectedPaths.has(n.path));
+    if (selectedNodes.length === 0) return;
     pipeline.setAdvanceMode(pauseBetween ? 'pause' : 'auto');
-    pipeline.startPipeline(selectedFiles, revisionSource, customPrompt);
-    onClose(); // Close modal — status bar takes over
+    pipeline.startPipeline(selectedNodes, revisionSource, customPrompt);
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -143,10 +203,17 @@ export default function RevisionModal({ isOpen, onClose, pipeline }) {
 
         {/* Body */}
         <div style={{ padding: 20, overflowY: 'auto', flex: 1 }}>
-          {/* File list */}
+          {/* File tree */}
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <span style={{ fontSize: 13, fontWeight: 600 }}>Select Files</span>
+              <span style={{ fontSize: 13, fontWeight: 600 }}>
+                Select Files
+                {activeBookProject && (
+                  <span style={{ fontSize: 11, fontWeight: 400, color: '#6366F1', marginLeft: 8 }}>
+                    {'\uD83D\uDCD6'} {activeBookProject}
+                  </span>
+                )}
+              </span>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   onClick={selectAll}
@@ -166,38 +233,29 @@ export default function RevisionModal({ isOpen, onClose, pipeline }) {
               style={{
                 border: `1px solid ${inputBorder}`,
                 borderRadius: 6,
-                maxHeight: 180,
+                maxHeight: 220,
                 overflowY: 'auto',
                 background: inputBg,
+                padding: '4px 0',
               }}
             >
-              {textFiles.length === 0 ? (
+              {displayTree.length === 0 ? (
                 <div style={{ padding: '12px 16px', fontSize: 12, color: c.chromeText }}>
-                  No text files found. Open a directory in the file panel first.
+                  No files found. Open a directory in the file panel or set a book folder first.
                 </div>
               ) : (
-                textFiles.map((f) => (
-                  <label
-                    key={f.path}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      padding: '4px 12px',
-                      cursor: 'pointer',
-                      fontSize: 12,
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedPaths.has(f.path)}
-                      onChange={() => toggleFile(f.path)}
-                      style={{ accentColor: '#7C3AED' }}
-                    />
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {f.path}
-                    </span>
-                  </label>
+                displayTree.map((node) => (
+                  <FileTreeNode
+                    key={node.path}
+                    node={node}
+                    depth={0}
+                    selectedPaths={selectedPaths}
+                    expandedDirs={expandedDirs}
+                    onToggleFile={toggleFile}
+                    onToggleDir={toggleDir}
+                    onToggleExpanded={toggleExpanded}
+                    colors={c}
+                  />
                 ))
               )}
             </div>
@@ -325,5 +383,102 @@ export default function RevisionModal({ isOpen, onClose, pipeline }) {
         </div>
       </div>
     </div>
+  );
+}
+
+/** Recursive tree node for the file selector. */
+function FileTreeNode({ node, depth, selectedPaths, expandedDirs, onToggleFile, onToggleDir, onToggleExpanded, colors }) {
+  const indent = depth * 16 + 8;
+
+  if (node.type === 'dir') {
+    const isExpanded = expandedDirs.has(node.path);
+    const childTextPaths = collectTextPaths(node.children || []);
+    const hasTextFiles = childTextPaths.length > 0;
+    const allSelected = hasTextFiles && childTextPaths.every((p) => selectedPaths.has(p));
+    const someSelected = !allSelected && childTextPaths.some((p) => selectedPaths.has(p));
+
+    if (!hasTextFiles) return null; // hide folders with no text files
+
+    return (
+      <>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '3px 8px',
+            paddingLeft: indent,
+            fontSize: 12,
+            cursor: 'pointer',
+            fontWeight: 600,
+            color: colors.text,
+          }}
+          onClick={() => onToggleExpanded(node.path)}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(124,58,237,0.06)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+        >
+          <input
+            type="checkbox"
+            checked={allSelected}
+            ref={(el) => { if (el) el.indeterminate = someSelected; }}
+            onChange={(e) => { e.stopPropagation(); onToggleDir(node); }}
+            onClick={(e) => e.stopPropagation()}
+            style={{ accentColor: '#7C3AED', cursor: 'pointer' }}
+          />
+          <span style={{ color: colors.chromeText, fontSize: 10, width: 12, textAlign: 'center', flexShrink: 0 }}>
+            {isExpanded ? '\u25BE' : '\u25B8'}
+          </span>
+          <span>{'\uD83D\uDCC1'}</span>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {node.name}
+          </span>
+          <span style={{ fontSize: 10, color: colors.chromeText, marginLeft: 'auto', flexShrink: 0 }}>
+            {childTextPaths.length}
+          </span>
+        </div>
+        {isExpanded && node.children?.map((child) => (
+          <FileTreeNode
+            key={child.path}
+            node={child}
+            depth={depth + 1}
+            selectedPaths={selectedPaths}
+            expandedDirs={expandedDirs}
+            onToggleFile={onToggleFile}
+            onToggleDir={onToggleDir}
+            onToggleExpanded={onToggleExpanded}
+            colors={colors}
+          />
+        ))}
+      </>
+    );
+  }
+
+  // Only show text files
+  if (!isTextFile(node.name)) return null;
+
+  return (
+    <label
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '2px 8px',
+        paddingLeft: indent + 16,
+        cursor: 'pointer',
+        fontSize: 12,
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(124,58,237,0.06)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+    >
+      <input
+        type="checkbox"
+        checked={selectedPaths.has(node.path)}
+        onChange={() => onToggleFile(node.path)}
+        style={{ accentColor: '#7C3AED' }}
+      />
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {node.name}
+      </span>
+    </label>
   );
 }

@@ -9,6 +9,8 @@ export default function GenreSelector() {
   const {
     selectedGenre, selectedSubgenre, selectedModifier,
     setGenre, setSubgenre, setModifier,
+    customGenreName, customSubgenreName,
+    setCustomGenreName, setCustomSubgenreName,
   } = useAppStore();
 
   const currentGenre = genreSystem[selectedGenre];
@@ -69,12 +71,36 @@ export default function GenreSelector() {
         )}
       </div>
 
+      {/* Custom genre/subgenre name overrides */}
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <h3 className="text-sm font-bold mb-2 text-purple-300">Custom Genre Name</h3>
+          <input
+            type="text"
+            value={customGenreName}
+            onChange={(e) => setCustomGenreName(e.target.value)}
+            placeholder={currentGenre.name}
+            className="w-full bg-slate-800 border border-purple-500/50 rounded px-3 py-2 text-white placeholder-slate-500 text-sm"
+          />
+        </div>
+        <div>
+          <h3 className="text-sm font-bold mb-2 text-purple-300">Custom Sub Genre Name</h3>
+          <input
+            type="text"
+            value={customSubgenreName}
+            onChange={(e) => setCustomSubgenreName(e.target.value)}
+            placeholder={currentSubgenre.name}
+            className="w-full bg-slate-800 border border-purple-500/50 rounded px-3 py-2 text-sm text-white placeholder-slate-500"
+          />
+        </div>
+      </div>
+
       <div className="p-3 bg-purple-900/30 rounded">
         <div className="text-sm font-bold text-purple-300">
           Plot Structure: {currentStructure.name}
         </div>
         <div className="text-xs text-purple-200 mt-1">
-          {currentGenre.name} stories follow the <strong>{currentStructure.name}</strong> narrative framework
+          {customGenreName || currentGenre.name} stories follow the <strong>{currentStructure.name}</strong> narrative framework
         </div>
       </div>
     </div>

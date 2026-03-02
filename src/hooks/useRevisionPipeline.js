@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import useEditorStore from '../store/useEditorStore';
 import useAppStore from '../store/useAppStore';
+import useProjectStore from '../store/useProjectStore';
 import { callCompletion } from '../api/providerAdapter';
 import {
   buildRevisionSystemPrompt,
@@ -129,10 +130,11 @@ export default function useRevisionPipeline() {
       const chapter = matchFileToChapter(content, fileEntry.name, app.chapters);
       const analysisData = chapter ? buildAnalysisData(chapter) : null;
 
-      // 3. Walk to parent directory handle
+      // 3. Walk to parent directory handle — use book dir handle if available, else editor root
       const pathParts = fileEntry.path.split('/').filter(Boolean);
       const fileName = pathParts.pop();
-      let parentDirHandle = editor.directoryHandle;
+      const projectStore = useProjectStore.getState();
+      let parentDirHandle = projectStore.bookDirHandle || editor.directoryHandle;
       for (const part of pathParts) {
         parentDirHandle = await parentDirHandle.getDirectoryHandle(part);
       }
@@ -191,13 +193,9 @@ export default function useRevisionPipeline() {
       } else if (analysisData) {
         effectiveAnalysis = analysisData;
       } else {
-        // No chapter match — fall back to generic guidance
+        // No chapter match — let revisionPrompts.js provide its comprehensive fallback guidance
         effectiveSource = 'custom';
-        effectiveAnalysis = {
-          customPrompt:
-            customPrompt ||
-            'Improve clarity, pacing, and prose quality while preserving the author\'s voice.',
-        };
+        effectiveAnalysis = { customPrompt: customPrompt || '' };
       }
 
       const userPrompt = buildRevisionUserPrompt(content, effectiveSource, effectiveAnalysis);
@@ -206,6 +204,10 @@ export default function useRevisionPipeline() {
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ];
+
+      // Dump full prompt to console for debugging
+      console.warn('[RevisionPipeline] System Prompt:\n', systemPrompt);
+      console.warn('[RevisionPipeline] User Prompt:\n', userPrompt);
 
       // 11. Stream AI response
       streamAccRef.current = '';

@@ -115,6 +115,31 @@ export const plotStructures = {
       newNormal: { name: 'Happy New Normal', range: [95, 100], color: '#86efac' },
     },
   },
+  sonataForm: {
+    name: 'Sonata Narrative Form',
+    description: 'Three-movement structure modeled on classical sonata form: Exposition (introduce Theme A + B), Development (fragment A, expand B, modulate tone), Recapitulation (return both themes in home key, unified). Optional Coda for series hooks. Pacing: High → Lower/Exploratory → Higher.',
+    acts: [
+      { name: 'I: Exposition', range: [0, 30], beats: ['homeKey', 'themeAIntro', 'themeBContrast', 'expectationsLocked'] },
+      { name: 'II: Development', range: [30, 70], beats: ['fragmentA', 'expandB', 'tonalModulation', 'instabilityPeak'] },
+      { name: 'III: Recapitulation', range: [70, 95], beats: ['structuralEcho', 'thematicIntegration', 'transformation'] },
+      { name: 'Coda', range: [95, 100], beats: ['coda'] },
+    ],
+    relatedFrameworks: 'Derived from classical sonata-allegro form. Theme A (external/structural) and Theme B (conceptual/investigative) mirror exposition-development-recapitulation in music. Related: Three Act, Freytag\'s Pyramid (symmetric arc), Kishotenketsu (twist/recontextualization).',
+    beats: {
+      homeKey: { name: 'Establish Home Key', range: [0, 8], color: '#64748b' },
+      themeAIntro: { name: 'Theme A (Primary)', range: [8, 18], color: '#b91c1c' },
+      themeBContrast: { name: 'Theme B (Contrast)', range: [18, 26], color: '#818cf8' },
+      expectationsLocked: { name: 'Expectations Locked', range: [26, 30], color: '#60a5fa' },
+      fragmentA: { name: 'Fragment Theme A', range: [30, 42], color: '#fb923c' },
+      expandB: { name: 'Expand Theme B', range: [42, 52], color: '#c084fc' },
+      tonalModulation: { name: 'Tonal Modulation', range: [52, 62], color: '#4ade80' },
+      instabilityPeak: { name: 'Instability Peak', range: [62, 70], color: '#fcd34d' },
+      structuralEcho: { name: 'Structural Echo', range: [70, 78], color: '#f87171' },
+      thematicIntegration: { name: 'Thematic Integration', range: [78, 88], color: '#9333ea' },
+      transformation: { name: 'Transformation', range: [88, 95], color: '#22d3ee' },
+      coda: { name: 'Coda', range: [95, 100], color: '#86efac' },
+    },
+  },
 };
 
 // 12-color palette for auto-assigning colors to converted reference structures
@@ -369,7 +394,7 @@ export const allStructures = { ...plotStructures, ...convertedStructures };
 
 // Keys grouped by category for the structure selector UI
 export const structureGroups = {
-  app: ['romancingTheBeat', 'heroJourney', 'threeAct', 'mysterySuspense'],
+  app: ['romancingTheBeat', 'heroJourney', 'threeAct', 'mysterySuspense', 'sonataForm'],
   act: ['sydFieldParadigm', 'kishotenketsu', 'freytagPyramid', 'eightSequence', 'haugeSixStage', 'wPlot', 'fichteanCurve'],
   beat: ['saveTheCat', 'truby22', 'storyCircle', 'sevenPoint'],
 };
@@ -611,6 +636,30 @@ export const referenceStructures = [
       { name: 'Pinch 2', position: '~62%' },
       { name: 'Plot Turn 2', position: '~75%' },
       { name: 'Resolution', position: '~90-100%' },
+    ],
+  },
+  {
+    name: 'Sonata Narrative Form',
+    type: 'act',
+    count: 4,
+    countLabel: '4 movements (3 + Coda)',
+    distribution: '30% / 40% / 25% / 5%',
+    symmetric: false,
+    genres: 'Historical Military + LitRPG + Sci-Fi, systems-driven fiction, multi-layer ontologies',
+    summary: 'Three-movement structure from classical sonata-allegro form. Two thematic forces (Theme A: external/structural, Theme B: conceptual/investigative) are introduced in Exposition, fragmented and expanded in Development (lighter tone, picaresque destabilization), then unified in Recapitulation (return to original tonal register with integrated stakes). Recurrence of Act I structure in Act III is mandatory. Optional Coda reframes equilibrium.',
+    steps: [
+      { name: 'Establish Home Key', position: '0-8%' },
+      { name: 'Theme A (Primary Structural)', position: '8-18%' },
+      { name: 'Theme B (Contrasting Force)', position: '18-26%' },
+      { name: 'Expectations Locked', position: '26-30%' },
+      { name: 'Fragment Theme A', position: '30-42%' },
+      { name: 'Expand Theme B', position: '42-52%' },
+      { name: 'Tonal Modulation', position: '52-62%' },
+      { name: 'Instability Peak', position: '62-70%' },
+      { name: 'Structural Echo (Mirror Act I)', position: '70-78%' },
+      { name: 'Thematic Integration (A ⊕ B)', position: '78-88%' },
+      { name: 'Transformation', position: '88-95%' },
+      { name: 'Coda', position: '95-100%' },
     ],
   },
 ];

@@ -3,7 +3,7 @@ import builtinScripts from '../../scripts/builtinScripts';
 import useScriptStore from '../../store/useScriptStore';
 import { runScript } from '../../scripts/scriptRunner';
 
-export default function FileContextMenu({ x, y, node, onClose, onRename, onDelete }) {
+export default function FileContextMenu({ x, y, node, onClose, onRename, onDelete, onCopyPath, onSetBookFolder }) {
   const ref = useRef(null);
   const userScripts = useScriptStore((s) => s.userScripts);
 
@@ -38,7 +38,9 @@ export default function FileContextMenu({ x, y, node, onClose, onRename, onDelet
 
   // Built-in actions
   const builtinActions = [];
+  if (onCopyPath) builtinActions.push({ id: '_copyPath', name: 'Copy Path', action: () => onCopyPath(node) });
   if (onRename) builtinActions.push({ id: '_rename', name: 'Rename', action: () => onRename(node) });
+  if (onSetBookFolder && node.type === 'dir') builtinActions.push({ id: '_setBook', name: 'Set as Book Folder', action: () => onSetBookFolder(node) });
   if (onDelete) builtinActions.push({ id: '_delete', name: 'Delete', action: () => onDelete(node), color: '#DC2626' });
 
   const totalItems = builtinActions.length + applicable.length;

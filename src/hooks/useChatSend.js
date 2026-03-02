@@ -17,6 +17,46 @@ const MAX_TOOL_ITERATIONS = 5;
 const MAX_TOOL_RESULT_CHARS = 6000;
 
 /**
+ * Safely parse LLM tool call arguments JSON.
+ * Models sometimes truncate arguments when they run out of output tokens.
+ * This tries progressively more aggressive repair before giving up.
+ * Returns {} on total failure rather than throwing.
+ */
+function safeParseToolArgs(str) {
+  if (!str || !str.trim()) return {};
+
+  // Attempt 1: direct parse
+  try { return JSON.parse(str); } catch (_) { /* fall through */ }
+
+  // Attempt 2: strip trailing commas and control chars
+  let s = str.replace(/,\s*([}\]])/g, '$1').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '');
+  try { return JSON.parse(s); } catch (_) { /* fall through */ }
+
+  // Attempt 3: close truncated JSON (unbalanced braces/brackets/quotes)
+  s = s.trimEnd();
+  // Close unterminated string
+  if ((s.match(/"/g) || []).length % 2 !== 0) {
+    s = s.replace(/"[^"]*$/, '""');
+  }
+  // Remove trailing comma
+  s = s.replace(/,\s*$/, '');
+  // Balance braces/brackets
+  let openBraces = 0, openBrackets = 0;
+  for (const ch of s) {
+    if (ch === '{') openBraces++;
+    else if (ch === '}') openBraces--;
+    else if (ch === '[') openBrackets++;
+    else if (ch === ']') openBrackets--;
+  }
+  for (let i = 0; i < openBrackets; i++) s += ']';
+  for (let i = 0; i < openBraces; i++) s += '}';
+  try { return JSON.parse(s); } catch (_) { /* fall through */ }
+
+  console.warn('[safeParseToolArgs] Could not repair JSON:', str.substring(0, 200));
+  return {};
+}
+
+/**
  * When display text is empty but tool results exist, format results as readable text
  * so the user sees the actual output instead of a blank message.
  */
@@ -222,7 +262,7 @@ export default function useChatSend() {
           for (const tc of toolCallsArr) {
             let result;
             try {
-              const args = JSON.parse(tc.function.arguments);
+              const args = safeParseToolArgs(tc.function.arguments);
               const handler = ACTION_HANDLERS[tc.function.name];
               if (!handler) throw new Error(`Unknown action: ${tc.function.name}`);
               const desc = await handler({ ...args, type: tc.function.name });
@@ -255,7 +295,7 @@ export default function useChatSend() {
       const finalText = formatToolResultsAsText(rawText, allActionResults);
       useChatStore.getState().finalizeStream(finalText, allActionResults, totalUsage.totalTokens > 0 ? totalUsage : null);
       // Auto-persist so history survives browser close without switching projects
-      useProjectStore.getState().saveCurrentChatHistory().catch(() => {});
+      useProjectStore.getState().saveCurrentChatHistory().catch(() => { });
     } else {
       // --- Fenced-block fallback (existing path) ---
       let fullResponse = '';
@@ -320,7 +360,7 @@ export default function useChatSend() {
           const finalDisplay = formatToolResultsAsText(displayText, actionResults);
           useChatStore.getState().finalizeStream(finalDisplay, actionResults, usage || null);
           // Auto-persist so history survives browser close without switching projects
-          useProjectStore.getState().saveCurrentChatHistory().catch(() => {});
+          useProjectStore.getState().saveCurrentChatHistory().catch(() => { });
         },
         (err) => {
           useChatStore.getState().setError(err.message);
