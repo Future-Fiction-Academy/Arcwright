@@ -4,7 +4,9 @@ import useInlineEditStore from '../../store/useInlineEditStore';
 import useEditorStore from '../../store/useEditorStore';
 import usePromptStore from '../../store/usePromptStore';
 import useAppStore from '../../store/useAppStore';
+import useBookStore from '../../store/useBookStore';
 import { genreSystem } from '../../data/genreSystem';
+import { dimensions, DIMENSION_KEYS } from '../../data/dimensions';
 import defaultPrompts from '../../data/defaultPrompts';
 import PromptEditorDialog from '../prompts/PromptEditorDialog';
 
@@ -214,17 +216,56 @@ function InlineEditPanel({
   const selectedModifier = useAppStore((s) => s.selectedModifier);
   const selectedPacing = useAppStore((s) => s.selectedPacing);
   const selectedStructure = useAppStore((s) => s.selectedStructure);
+  const bookScenes = useBookStore((s) => s.scenes);
+  const bookCharacters = useBookStore((s) => s.characters);
+  const activeTabId = useEditorStore((s) => s.activeTabId);
   const scaffoldVars = useMemo(() => {
     const gd = genreSystem[selectedGenre];
     const sd = gd?.subgenres?.[selectedSubgenre];
-    return {
+    const vars = {
       genre: gd?.name || selectedGenre || '',
       subgenre: sd?.name || selectedSubgenre || '',
       modifier: selectedModifier || '',
       pacing: selectedPacing || '',
       structure: selectedStructure || '',
     };
-  }, [selectedGenre, selectedSubgenre, selectedModifier, selectedPacing, selectedStructure]);
+
+    // Enrich with scene/beat context if the active file matches a scene
+    if (activeTabId && bookScenes.length > 0) {
+      const scene = bookScenes.find((s) =>
+        s.file_path && activeTabId.includes(s.file_path)
+      );
+      if (scene) {
+        vars.scene_title = scene.title || '';
+        vars.scene_summary = scene.summary || '';
+        vars.beat_name = scene.beat_id || '';
+        vars.beat_time = scene.time_position != null ? `${scene.time_position}%` : '';
+
+        // POV character name
+        if (scene.pov_character_id) {
+          const char = bookCharacters.find((c) => c.id === scene.pov_character_id);
+          vars.pov_character = char?.name || '';
+        }
+
+        // Expected dimensions formatted as a compact string
+        if (scene.time_position != null) {
+          const scaffoldBeats = useAppStore.getState().scaffoldBeats;
+          const matchBeat = scaffoldBeats.find((b) =>
+            b.beat === scene.beat_id || b.label === scene.beat_id
+          );
+          if (matchBeat) {
+            vars.beat_guidance = matchBeat.label || '';
+            const dimParts = DIMENSION_KEYS
+              .filter((k) => matchBeat[k] != null)
+              .map((k) => `${dimensions[k].name}: ${Number(matchBeat[k]).toFixed(1)}`);
+            vars.expected_dimensions = dimParts.join(', ');
+          }
+        }
+      }
+    }
+
+    return vars;
+  }, [selectedGenre, selectedSubgenre, selectedModifier, selectedPacing, selectedStructure, activeTabId, bookScenes, bookCharacters]);
 
   const [prompt, setPrompt] = useState(initialPreset?.title || '');
   const [showHistory, setShowHistory] = useState(false);

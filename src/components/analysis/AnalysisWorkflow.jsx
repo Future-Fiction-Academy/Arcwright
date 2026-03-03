@@ -15,6 +15,7 @@ import ComparisonOverlay from './ComparisonOverlay';
 import GetWellPlan from './GetWellPlan';
 import RevisionChecklist from './RevisionChecklist';
 import ProjectionOverlay from './ProjectionOverlay';
+import ScoreProgressionPanel from './ScoreProgressionPanel';
 
 /**
  * Toggle for comparing against Genre Ideal vs Custom Scaffold.
@@ -308,6 +309,8 @@ export default function AnalysisWorkflow() {
           <RevisionChecklist />
 
           <ProjectionOverlay />
+
+          <ScoreProgressionPanel />
 
           {/* Export to Editor */}
           <div className="mt-8 mb-6">

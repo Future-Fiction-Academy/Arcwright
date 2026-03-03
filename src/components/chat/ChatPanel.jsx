@@ -38,7 +38,7 @@ export default function ChatPanel() {
   const [slashQuery, setSlashQuery] = useState('');
   const [slashIndex, setSlashIndex] = useState(0);
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
-  const [showFiles, setShowFiles] = useState(false);
+
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
   const [systemPromptText, setSystemPromptText] = useState('');
   const [editingMessageId, setEditingMessageId] = useState(null);
@@ -144,12 +144,10 @@ export default function ChatPanel() {
     setShowSystemPrompt(!showSystemPrompt);
   };
 
-  // Display name for the current mode/project
+  // Display name for the current AI project (book projects don't go here)
   const promptLabel = activeMode === 'ai' && activeAiProject
     ? activeAiProject.name
-    : activeMode === 'book' && activeBookProject
-      ? activeBookProject
-      : 'Full Context';
+    : 'Full Context';
 
   // Auto-scroll to bottom on new messages or stream updates
   useEffect(() => {
@@ -330,149 +328,130 @@ export default function ChatPanel() {
   };
 
   return (
-      <div className="flex flex-col h-full bg-g-bg text-g-text">
-        {/* Header */}
-        <div className="p-3 border-b border-g-border shrink-0 bg-g-bg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <h2 className={`text-sm font-bold shrink-0 px-1.5 py-0.5 rounded ${toolsActive ? 'bg-green-500 text-white' : 'text-g-text'}`}>AI</h2>
-              <span
-                className="text-[10px] px-1.5 py-0.5 rounded bg-g-chrome text-g-muted font-mono truncate max-w-[200px] cursor-pointer hover:bg-g-chrome transition-colors"
-                title={`${providerConfig?.name || activeProvider} / ${providerState.selectedModel || 'none'}\nClick to open Settings`}
-                onClick={openSettings}
-              >
-                {providerConfig?.name ? `${providerConfig.name} / ` : ''}{shortName(providerState.selectedModel || '')}
-              </span>
-              <div className="relative shrink-0" ref={dropdownRef}>
+    <div className="flex flex-col h-full bg-g-bg text-g-text">
+      {/* Header */}
+      <div className="p-3 border-b border-g-border shrink-0 bg-g-bg">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h2 className={`text-sm font-bold shrink-0 px-1.5 py-0.5 rounded ${toolsActive ? 'bg-green-500 text-white' : 'text-g-text'}`}>AI</h2>
+          <span
+            className="text-[10px] px-1.5 py-0.5 rounded bg-g-chrome text-g-muted font-mono truncate max-w-[100px] cursor-pointer hover:bg-g-chrome transition-colors"
+            title={`${providerConfig?.name || activeProvider} / ${providerState.selectedModel || 'none'}\nClick to open Settings`}
+            onClick={openSettings}
+          >
+            {providerConfig?.name ? `${providerConfig.name} / ` : ''}{shortName(providerState.selectedModel || '')}
+          </span>
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setShowProjectDropdown(!showProjectDropdown)}
+              className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium max-w-[120px] truncate hover:bg-purple-200 transition-colors cursor-pointer"
+              title={`${promptLabel}\nClick to switch AI project`}
+            >
+              {promptLabel} <span className="text-[8px] opacity-60">{showProjectDropdown ? '\u25B2' : '\u25BC'}</span>
+            </button>
+            {showProjectDropdown && (
+              <div className="absolute top-full left-0 mt-1 w-52 bg-g-bg border border-g-border rounded-lg shadow-lg z-50 py-1 max-h-64 overflow-y-auto">
+                {/* Full Context (default, no AI project) */}
                 <button
-                  onClick={() => setShowProjectDropdown(!showProjectDropdown)}
-                  className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium max-w-[120px] truncate hover:bg-purple-200 transition-colors cursor-pointer"
-                  title={`${promptLabel}\nClick to switch AI project`}
+                  onClick={() => {
+                    useProjectStore.getState().deactivateProject();
+                    setShowProjectDropdown(false);
+                  }}
+                  className={`w-full text-left px-3 py-1.5 text-[11px] hover:bg-g-chrome transition-colors ${!activeMode || activeMode === 'book' ? 'font-semibold text-purple-700 bg-purple-50' : 'text-g-text'
+                    }`}
                 >
-                  {promptLabel} <span className="text-[8px] opacity-60">{showProjectDropdown ? '\u25B2' : '\u25BC'}</span>
+                  Full Context
                 </button>
-                {showProjectDropdown && (
-                  <div className="absolute top-full left-0 mt-1 w-52 bg-g-bg border border-g-border rounded-lg shadow-lg z-50 py-1 max-h-64 overflow-y-auto">
-                    {/* Full Context (default, no AI project) */}
-                    <button
-                      onClick={() => {
-                        useProjectStore.getState().deactivateProject();
-                        setShowProjectDropdown(false);
-                      }}
-                      className={`w-full text-left px-3 py-1.5 text-[11px] hover:bg-g-chrome transition-colors ${
-                        !activeMode || activeMode === 'book' ? 'font-semibold text-purple-700 bg-purple-50' : 'text-g-text'
-                      }`}
-                    >
-                      Full Context
-                    </button>
-                    {/* Presets */}
-                    {AI_PROJECT_PRESETS.length > 0 && (
-                      <div className="border-t border-g-border mt-1 pt-1">
-                        <div className="px-3 py-0.5 text-[9px] text-g-status uppercase font-semibold">Presets</div>
-                        {AI_PROJECT_PRESETS.map((p) => (
-                          <button
-                            key={`preset_${p.presetKey}`}
-                            onClick={() => {
-                              useProjectStore.getState().activateAiProject(p);
-                              setShowProjectDropdown(false);
-                            }}
-                            className={`w-full text-left px-3 py-1.5 text-[11px] hover:bg-g-chrome transition-colors ${
-                              activeMode === 'ai' && activeAiProject?.isPreset && activeAiProject?.presetKey === p.presetKey
-                                ? 'font-semibold text-purple-700 bg-purple-50'
-                                : 'text-g-text'
-                            }`}
-                          >
-                            {p.name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {/* User AI projects */}
-                    {aiProjects.length > 0 && (
-                      <div className="border-t border-g-border mt-1 pt-1">
-                        <div className="px-3 py-0.5 text-[9px] text-g-status uppercase font-semibold">Projects</div>
-                        {aiProjects.map((p) => (
-                          <button
-                            key={p.name}
-                            onClick={() => {
-                              useProjectStore.getState().activateAiProject(p);
-                              setShowProjectDropdown(false);
-                            }}
-                            className={`w-full text-left px-3 py-1.5 text-[11px] hover:bg-g-chrome transition-colors ${
-                              activeMode === 'ai' && !activeAiProject?.isPreset && activeAiProject?.name === p.name
-                                ? 'font-semibold text-purple-700 bg-purple-50'
-                                : 'text-g-text'
-                            }`}
-                          >
-                            {p.name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                {/* Presets */}
+                {AI_PROJECT_PRESETS.length > 0 && (
+                  <div className="border-t border-g-border mt-1 pt-1">
+                    <div className="px-3 py-0.5 text-[9px] text-g-status uppercase font-semibold">Presets</div>
+                    {AI_PROJECT_PRESETS.map((p) => (
+                      <button
+                        key={`preset_${p.presetKey}`}
+                        onClick={() => {
+                          useProjectStore.getState().activateAiProject(p);
+                          setShowProjectDropdown(false);
+                        }}
+                        className={`w-full text-left px-3 py-1.5 text-[11px] hover:bg-g-chrome transition-colors ${activeMode === 'ai' && activeAiProject?.isPreset && activeAiProject?.presetKey === p.presetKey
+                          ? 'font-semibold text-purple-700 bg-purple-50'
+                          : 'text-g-text'
+                          }`}
+                      >
+                        {p.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {/* User AI projects */}
+                {aiProjects.length > 0 && (
+                  <div className="border-t border-g-border mt-1 pt-1">
+                    <div className="px-3 py-0.5 text-[9px] text-g-status uppercase font-semibold">Projects</div>
+                    {aiProjects.map((p) => (
+                      <button
+                        key={p.name}
+                        onClick={() => {
+                          useProjectStore.getState().activateAiProject(p);
+                          setShowProjectDropdown(false);
+                        }}
+                        className={`w-full text-left px-3 py-1.5 text-[11px] hover:bg-g-chrome transition-colors ${activeMode === 'ai' && !activeAiProject?.isPreset && activeAiProject?.name === p.name
+                          ? 'font-semibold text-purple-700 bg-purple-50'
+                          : 'text-g-text'
+                          }`}
+                      >
+                        {p.name}
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
-              {toolsActive && !activeMode && (
-                <span className="text-[9px] px-1 py-0.5 rounded bg-green-100 text-green-700 font-medium shrink-0">
-                  tools
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                onClick={handleToggleSystemPrompt}
-                className={`text-xs px-2 py-1 rounded transition-colors ${
-                  showSystemPrompt
-                    ? 'bg-black text-white'
-                    : 'text-g-muted hover:text-g-text hover:bg-g-chrome'
-                }`}
-                title="View system prompt"
-              >
-                Mode
-              </button>
-              <button
-                onClick={() => setShowPromptManager(true)}
-                className="text-xs px-2 py-1 rounded transition-colors text-g-muted hover:text-g-text hover:bg-g-chrome"
-                title="Manage prompts"
-              >
-                Prompts
-              </button>
-              {hasFiles && (
-                <button
-                  onClick={() => { setShowFiles(!showFiles); if (!showFiles) { setShowSystemPrompt(false); } }}
-                  className={`text-xs px-2 py-1 rounded transition-colors ${
-                    showFiles
-                      ? 'bg-black text-white'
-                      : 'text-g-muted hover:text-g-text hover:bg-g-chrome'
-                  }`}
-                  title="View file tree"
-                >
-                  Files
-                </button>
-              )}
-              <button
-                onClick={() => {
-                  if (messages.length === 0 || window.confirm('Start a new chat? Current messages will be cleared.')) {
-                    clearMessages();
-                    useProjectStore.getState().clearProjectHistory().catch(() => {});
-                  }
-                }}
-                className="text-g-muted hover:text-g-text px-1.5 py-1 rounded hover:bg-g-chrome transition-colors"
-                title="New chat"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="3" width="12" height="10" rx="1.5" />
-                  <line x1="5" y1="6.5" x2="11" y2="6.5" />
-                  <line x1="5" y1="9.5" x2="9" y2="9.5" />
-                  <path d="M12 1v3M14 2h-4" strokeWidth="1.5" />
-                </svg>
-              </button>
-            </div>
+            )}
           </div>
-        </div>
+          {toolsActive && !activeMode && (
+            <span className="text-[9px] px-1 py-0.5 rounded bg-green-100 text-green-700 font-medium shrink-0">
+              tools
+            </span>
+          )}
+          <button
+            onClick={handleToggleSystemPrompt}
+            className={`text-xs px-2 py-1 rounded transition-colors ${showSystemPrompt
+              ? 'bg-black text-white'
+              : 'text-g-muted hover:text-g-text hover:bg-g-chrome'
+              }`}
+            title="View system prompt"
+          >
+            Mode
+          </button>
+          <button
+            onClick={() => setShowPromptManager(true)}
+            className="text-xs px-2 py-1 rounded transition-colors text-g-muted hover:text-g-text hover:bg-g-chrome"
+            title="Manage prompts"
+          >
+            Prompts
+          </button>
 
-        {/* System prompt viewer */}
-        {showSystemPrompt && (
+          <button
+            onClick={() => {
+              if (messages.length === 0 || window.confirm('Start a new chat? Current messages will be cleared.')) {
+                clearMessages();
+                useProjectStore.getState().clearProjectHistory().catch(() => { });
+              }
+            }}
+            className="text-g-muted hover:text-g-text px-1.5 py-1 rounded hover:bg-g-chrome transition-colors"
+            title="New chat"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="12" height="10" rx="1.5" />
+              <line x1="5" y1="6.5" x2="11" y2="6.5" />
+              <line x1="5" y1="9.5" x2="9" y2="9.5" />
+              <path d="M12 1v3M14 2h-4" strokeWidth="1.5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* System prompt viewer */}
+      {
+        showSystemPrompt && (
           <div className="border-b border-g-border bg-g-chrome shrink-0 max-h-[60%] overflow-y-auto">
             <div className="p-3">
               <div className="flex items-center justify-between mb-2">
@@ -489,126 +468,85 @@ export default function ChatPanel() {
               </pre>
             </div>
           </div>
-        )}
+        )
+      }
 
-        {/* File tree panel */}
-        {showFiles && hasFiles && (
-          <div className="border-b border-g-border bg-g-chrome shrink-0 max-h-[40%] overflow-y-auto">
-            <div className="p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-g-muted uppercase">
-                  Files — {directoryHandle?.name || 'Editor'}
-                </span>
-                <button
-                  onClick={() => setShowFiles(false)}
-                  className="text-xs text-g-status hover:text-g-text"
-                >
-                  {'\u2715'}
-                </button>
-              </div>
-              <FileTreeView
-                entries={fileTree}
-                onFileClick={async (entry) => {
-                  try {
-                    const file = await entry.handle.getFile();
-                    const content = await file.text();
-                    useEditorStore.getState().openTab(entry.path, entry.name, content, entry.handle);
-                    if (!location.pathname.startsWith('/edit')) navigate('/edit');
-                  } catch (e) {
-                    console.warn('[ChatPanel] Could not open file:', e.message);
-                  }
-                }}
-                onToggleDir={(path) => {
-                  // Persist expanded state in editor store
-                  useEditorStore.getState().toggleTreeNode(path);
-                  // Also update book tree if showing the book project
-                  if (activeMode === 'book' && bookFileTree?.length > 0) {
-                    const toggle = (nodes) => nodes.map((n) => {
-                      if (n.path === path) return { ...n, expanded: !n.expanded };
-                      if (n.children) return { ...n, children: toggle(n.children) };
-                      return n;
-                    });
-                    useProjectStore.setState((s) => ({ bookFileTree: toggle(s.bookFileTree) }));
-                  }
-                }}
-              />
-            </div>
+
+
+      {/* Messages area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-g-bg" aria-live="polite" role="log" aria-label="Chat messages">
+        {messages.length === 0 && !isStreaming && (
+          <div className="text-center text-g-status text-sm mt-8">
+            {activeMode === 'ai' && activeAiProject ? (
+              <>
+                <p className="mb-2">AI Project: {activeAiProject.name}</p>
+                <p className="text-xs text-g-status">
+                  {activeAiProject.files?.length > 0
+                    ? `${activeAiProject.files.length} file(s) in catalog. Ask me anything.`
+                    : 'Custom system prompt active. Ask me anything.'}
+                </p>
+              </>
+            ) : activeMode === 'book' && activeBookProject ? (
+              <>
+                <p className="mb-2">Book Project: {activeBookProject}</p>
+                <p className="text-xs text-g-status">
+                  Ask me about your story.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="mb-2">Ask me about your story.</p>
+                <p className="text-xs text-g-status">
+                  I can read and modify your scaffold beats, genre settings, chapter scores, and more.
+                </p>
+              </>
+            )}
           </div>
         )}
 
-        {/* Messages area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-g-bg" aria-live="polite" role="log" aria-label="Chat messages">
-          {messages.length === 0 && !isStreaming && (
-            <div className="text-center text-g-status text-sm mt-8">
-              {activeMode === 'ai' && activeAiProject ? (
-                <>
-                  <p className="mb-2">AI Project: {activeAiProject.name}</p>
-                  <p className="text-xs text-g-status">
-                    {activeAiProject.files?.length > 0
-                      ? `${activeAiProject.files.length} file(s) in catalog. Ask me anything.`
-                      : 'Custom system prompt active. Ask me anything.'}
-                  </p>
-                </>
-              ) : activeMode === 'book' && activeBookProject ? (
-                <>
-                  <p className="mb-2">Book Project: {activeBookProject}</p>
-                  <p className="text-xs text-g-status">
-                    Ask me about your story.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="mb-2">Ask me about your story.</p>
-                  <p className="text-xs text-g-status">
-                    I can read and modify your scaffold beats, genre settings, chapter scores, and more.
-                  </p>
-                </>
-              )}
+        {messages.map((msg, idx) => (
+          <ChatMessage
+            key={msg.id}
+            message={msg}
+            onCopy={handleCopy}
+            onRegenerate={msg.role === 'assistant' ? () => handleRegenerate(msg) : undefined}
+            onEdit={msg.role === 'user' ? handleEdit : undefined}
+          />
+        ))}
+
+        {/* Streaming: show partial response */}
+        {isStreaming && streamBuffer && (
+          <div className="bg-g-chrome rounded-lg border border-g-border p-3 text-sm text-g-text">
+            <div className="whitespace-pre-wrap break-words leading-relaxed">
+              {stripActionBlocks(streamBuffer)}
             </div>
-          )}
+            <span className="inline-block w-1.5 h-4 bg-g-accent ml-0.5 animate-pulse" />
+          </div>
+        )}
 
-          {messages.map((msg, idx) => (
-            <ChatMessage
-              key={msg.id}
-              message={msg}
-              onCopy={handleCopy}
-              onRegenerate={msg.role === 'assistant' ? () => handleRegenerate(msg) : undefined}
-              onEdit={msg.role === 'user' ? handleEdit : undefined}
-            />
-          ))}
+        {/* Streaming: waiting for first chunk */}
+        {isStreaming && !streamBuffer && (
+          <div className="flex gap-1.5 p-3">
+            <span className="w-2 h-2 bg-g-muted rounded-full animate-bounce" style={{ animationDelay: '0ms' }} aria-hidden="true" />
+            <span className="w-2 h-2 bg-g-muted rounded-full animate-bounce" style={{ animationDelay: '150ms' }} aria-hidden="true" />
+            <span className="w-2 h-2 bg-g-muted rounded-full animate-bounce" style={{ animationDelay: '300ms' }} aria-hidden="true" />
+            <span className="sr-only">AI is generating a response...</span>
+          </div>
+        )}
 
-          {/* Streaming: show partial response */}
-          {isStreaming && streamBuffer && (
-            <div className="bg-g-chrome rounded-lg border border-g-border p-3 text-sm text-g-text">
-              <div className="whitespace-pre-wrap break-words leading-relaxed">
-                {stripActionBlocks(streamBuffer)}
-              </div>
-              <span className="inline-block w-1.5 h-4 bg-g-accent ml-0.5 animate-pulse" />
-            </div>
-          )}
+        {/* Error display */}
+        {error && (
+          <div className="bg-red-900/30 border border-red-500/50 rounded p-3 text-xs text-red-300">
+            {error}
+          </div>
+        )}
 
-          {/* Streaming: waiting for first chunk */}
-          {isStreaming && !streamBuffer && (
-            <div className="flex gap-1.5 p-3">
-              <span className="w-2 h-2 bg-g-muted rounded-full animate-bounce" style={{ animationDelay: '0ms' }} aria-hidden="true" />
-              <span className="w-2 h-2 bg-g-muted rounded-full animate-bounce" style={{ animationDelay: '150ms' }} aria-hidden="true" />
-              <span className="w-2 h-2 bg-g-muted rounded-full animate-bounce" style={{ animationDelay: '300ms' }} aria-hidden="true" />
-              <span className="sr-only">AI is generating a response...</span>
-            </div>
-          )}
+        <div ref={messagesEndRef} />
+      </div>
 
-          {/* Error display */}
-          {error && (
-            <div className="bg-red-900/30 border border-red-500/50 rounded p-3 text-xs text-red-300">
-              {error}
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Attachments preview */}
-        {attachments.length > 0 && (
+      {/* Attachments preview */}
+      {
+        attachments.length > 0 && (
           <div className="px-3 pt-2 border-t border-g-border bg-g-chrome">
             <div className="flex flex-wrap gap-2">
               {attachments.map((att, i) => (
@@ -629,10 +567,12 @@ export default function ChatPanel() {
               ))}
             </div>
           </div>
-        )}
+        )
+      }
 
-        {/* Context stats bar — shown when history is long enough to manage */}
-        {messages.length >= 6 && (() => {
+      {/* Context stats bar — shown when history is long enough to manage */}
+      {
+        messages.length >= 6 && (() => {
           const totalChars = messages.reduce((sum, m) => sum + (m.content || '').length, 0);
           const trimOptions = [10, 20, 50].filter((n) => messages.length > n);
           if (trimOptions.length === 0 && totalChars < 8000) return null;
@@ -650,7 +590,7 @@ export default function ChatPanel() {
                       onClick={() => {
                         if (window.confirm(`Keep only the last ${n} messages? Older messages will be removed from this session.`)) {
                           trimToLast(n);
-                          useProjectStore.getState().saveCurrentChatHistory().catch(() => {});
+                          useProjectStore.getState().saveCurrentChatHistory().catch(() => { });
                         }
                       }}
                       className="text-[9px] px-1.5 py-0.5 rounded hover:bg-g-chrome text-g-muted transition-colors"
@@ -663,135 +603,134 @@ export default function ChatPanel() {
               )}
             </div>
           );
-        })()}
+        })()
+      }
 
-        {/* Input area */}
-        <div className="p-3 border-t border-g-border shrink-0 bg-g-bg">
-          <div className="relative">
-            {/* Slash-command picker: sequences + prompts */}
-            {slashMenuOpen && filteredItems.length > 0 && (
-              <div className="absolute bottom-full left-0 right-0 mb-1 bg-g-bg border border-g-border rounded-lg shadow-lg max-h-48 overflow-y-auto z-50">
-                {filteredItems.map((item, idx) => {
-                  const isFirstOfType = idx === 0 || filteredItems[idx - 1]._type !== item._type;
-                  return (
-                    <React.Fragment key={item.id}>
-                      {isFirstOfType && (
-                        <div className={`px-2.5 py-1 text-[9px] font-bold text-g-status uppercase border-b border-g-border${idx > 0 ? ' border-t border-g-border mt-0.5' : ''}`}>
-                          {item._type === 'sequence' ? 'Sequences' : 'Prompts'}
-                        </div>
-                      )}
-                      <button
-                        onMouseDown={(e) => { e.preventDefault(); handleSlashSelect(item); }}
-                        onMouseEnter={() => setSlashIndex(idx)}
-                        className={`w-full text-left px-2.5 py-1.5 text-xs flex items-baseline gap-2 transition-colors ${
-                          idx === slashIndex ? 'bg-purple-50 text-purple-700' : 'text-g-text hover:bg-g-chrome'
+      {/* Input area */}
+      <div className="p-3 border-t border-g-border shrink-0 bg-g-bg">
+        <div className="relative">
+          {/* Slash-command picker: sequences + prompts */}
+          {slashMenuOpen && filteredItems.length > 0 && (
+            <div className="absolute bottom-full left-0 right-0 mb-1 bg-g-bg border border-g-border rounded-lg shadow-lg max-h-48 overflow-y-auto z-50">
+              {filteredItems.map((item, idx) => {
+                const isFirstOfType = idx === 0 || filteredItems[idx - 1]._type !== item._type;
+                return (
+                  <React.Fragment key={item.id}>
+                    {isFirstOfType && (
+                      <div className={`px-2.5 py-1 text-[9px] font-bold text-g-status uppercase border-b border-g-border${idx > 0 ? ' border-t border-g-border mt-0.5' : ''}`}>
+                        {item._type === 'sequence' ? 'Sequences' : 'Prompts'}
+                      </div>
+                    )}
+                    <button
+                      onMouseDown={(e) => { e.preventDefault(); handleSlashSelect(item); }}
+                      onMouseEnter={() => setSlashIndex(idx)}
+                      className={`w-full text-left px-2.5 py-1.5 text-xs flex items-baseline gap-2 transition-colors ${idx === slashIndex ? 'bg-purple-50 text-purple-700' : 'text-g-text hover:bg-g-chrome'
                         }`}
-                      >
-                        <span className="font-medium shrink-0">
-                          {item._type === 'sequence' ? item.name : item.title}
-                        </span>
-                        {item._type === 'sequence' ? (
-                          <>
-                            {item.description && (
-                              <span className="text-g-status text-[10px] truncate">{item.description}</span>
-                            )}
-                            <span className="text-g-status text-[10px] shrink-0 ml-auto">
-                              {item.steps?.length || 0} steps
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-[9px] px-1 py-0.5 rounded bg-purple-50 text-purple-500 shrink-0 ml-auto">
-                            prompt
+                    >
+                      <span className="font-medium shrink-0">
+                        {item._type === 'sequence' ? item.name : item.title}
+                      </span>
+                      {item._type === 'sequence' ? (
+                        <>
+                          {item.description && (
+                            <span className="text-g-status text-[10px] truncate">{item.description}</span>
+                          )}
+                          <span className="text-g-status text-[10px] shrink-0 ml-auto">
+                            {item.steps?.length || 0} steps
                           </span>
-                        )}
-                      </button>
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-            )}
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => {
-                const val = e.target.value;
-                setInput(val);
-                if (val.startsWith('/') && !val.includes(' ') && (sequences.length > 0 || allPrompts.length > 0)) {
-                  setSlashQuery(val.slice(1));
-                  setSlashMenuOpen(true);
-                  setSlashIndex(0);
-                } else {
-                  setSlashMenuOpen(false);
-                }
-              }}
-              onKeyDown={handleKeyDown}
-              placeholder={imageMode ? 'Describe the image to generate...' : (editingMessageId ? 'Edit your message...' : 'Ask about your story...')}
-              rows={2}
-              className={`w-full bg-g-bg border rounded-lg pl-10 pr-20 py-2 text-sm text-g-text resize-none focus:outline-none placeholder:text-g-status ${imageMode ? 'border-purple-400 focus:border-purple-600' : 'border-g-border focus:border-g-text'}`}
-            />
-            {/* File attachment button */}
-            <button
-              onClick={handleAttachFile}
-              disabled={isStreaming}
-              className="absolute left-2 bottom-2 w-7 h-7 flex items-center justify-center text-g-status hover:text-g-muted hover:bg-g-chrome rounded-md transition-colors disabled:opacity-50"
-              title="Attach files"
-              aria-label="Attach files"
-            >
-              <span aria-hidden="true">📎</span>
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              onChange={handleFileSelected}
-              className="hidden"
-              accept=".txt,.md,.json,.js,.jsx,.ts,.tsx,.css,.html,.py,.xml,.yaml,.yml,.csv"
-            />
-            {/* Image mode toggle */}
-            <button
-              onClick={() => { if (imageReady) setImageMode((m) => !m); else openSettings('image'); }}
-              title={imageReady ? (imageMode ? 'Switch to text mode' : 'Switch to image generation mode') : 'Configure image provider in Settings'}
-              className={`absolute right-10 bottom-2 w-7 h-7 flex items-center justify-center rounded-md transition-colors text-base ${
-                imageMode
-                  ? 'bg-purple-600 text-white hover:bg-purple-700'
-                  : imageReady
-                    ? 'text-g-status hover:text-purple-600 hover:bg-purple-50'
-                    : 'text-gray-300 cursor-pointer'
-              }`}
-            >
-              🖼
-            </button>
-            {isStreaming || imagePending ? (
-              <button
-                onClick={imagePending ? undefined : abortStream}
-                disabled={imagePending}
-                className="absolute right-2 bottom-2 w-7 h-7 flex items-center justify-center bg-black hover:bg-gray-800 rounded-md transition-colors disabled:opacity-60"
-                title={imagePending ? 'Generating image...' : 'Stop generating'}
-                aria-label={imagePending ? 'Generating image' : 'Stop generating'}
-              >
-                <span aria-hidden="true" style={{ width: 10, height: 10, background: '#DC2626', borderRadius: 2, display: 'block' }} />
-              </button>
-            ) : (
-              <button
-                onClick={handleSend}
-                disabled={!input.trim() && attachments.length === 0}
-                aria-label="Send message"
-                className={`absolute right-2 bottom-2 w-7 h-7 flex items-center justify-center disabled:bg-gray-300 disabled:text-g-muted text-white rounded-md text-sm font-semibold transition-colors ${imageMode ? 'bg-purple-600 hover:bg-purple-700' : 'bg-black hover:bg-gray-800'}`}
-              >
-                {'\u2191'}
-              </button>
-            )}
-          </div>
-          {editingMessageId && (
-            <div className="mt-1 min-h-[14px]">
-              <span className="text-[10px] text-purple-600 font-medium">
-                Editing message • <button onClick={() => { setEditingMessageId(null); setInput(''); }} className="underline hover:text-purple-800">Cancel</button>
-              </span>
+                        </>
+                      ) : (
+                        <span className="text-[9px] px-1 py-0.5 rounded bg-purple-50 text-purple-500 shrink-0 ml-auto">
+                          prompt
+                        </span>
+                      )}
+                    </button>
+                  </React.Fragment>
+                );
+              })}
             </div>
           )}
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => {
+              const val = e.target.value;
+              setInput(val);
+              if (val.startsWith('/') && !val.includes(' ') && (sequences.length > 0 || allPrompts.length > 0)) {
+                setSlashQuery(val.slice(1));
+                setSlashMenuOpen(true);
+                setSlashIndex(0);
+              } else {
+                setSlashMenuOpen(false);
+              }
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder={imageMode ? 'Describe the image to generate...' : (editingMessageId ? 'Edit your message...' : 'Ask about your story...')}
+            rows={2}
+            className={`w-full bg-g-bg border rounded-lg pl-10 pr-20 py-2 text-sm text-g-text resize-none focus:outline-none placeholder:text-g-status ${imageMode ? 'border-purple-400 focus:border-purple-600' : 'border-g-border focus:border-g-text'}`}
+          />
+          {/* File attachment button */}
+          <button
+            onClick={handleAttachFile}
+            disabled={isStreaming}
+            className="absolute left-2 bottom-2 w-7 h-7 flex items-center justify-center text-g-status hover:text-g-muted hover:bg-g-chrome rounded-md transition-colors disabled:opacity-50"
+            title="Attach files"
+            aria-label="Attach files"
+          >
+            <span aria-hidden="true">📎</span>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            onChange={handleFileSelected}
+            className="hidden"
+            accept=".txt,.md,.json,.js,.jsx,.ts,.tsx,.css,.html,.py,.xml,.yaml,.yml,.csv"
+          />
+          {/* Image mode toggle */}
+          <button
+            onClick={() => { if (imageReady) setImageMode((m) => !m); else openSettings('image'); }}
+            title={imageReady ? (imageMode ? 'Switch to text mode' : 'Switch to image generation mode') : 'Configure image provider in Settings'}
+            className={`absolute right-10 bottom-2 w-7 h-7 flex items-center justify-center rounded-md transition-colors text-base ${imageMode
+              ? 'bg-purple-600 text-white hover:bg-purple-700'
+              : imageReady
+                ? 'text-g-status hover:text-purple-600 hover:bg-purple-50'
+                : 'text-gray-300 cursor-pointer'
+              }`}
+          >
+            🖼
+          </button>
+          {isStreaming || imagePending ? (
+            <button
+              onClick={imagePending ? undefined : abortStream}
+              disabled={imagePending}
+              className="absolute right-2 bottom-2 w-7 h-7 flex items-center justify-center bg-black hover:bg-gray-800 rounded-md transition-colors disabled:opacity-60"
+              title={imagePending ? 'Generating image...' : 'Stop generating'}
+              aria-label={imagePending ? 'Generating image' : 'Stop generating'}
+            >
+              <span aria-hidden="true" style={{ width: 10, height: 10, background: '#DC2626', borderRadius: 2, display: 'block' }} />
+            </button>
+          ) : (
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() && attachments.length === 0}
+              aria-label="Send message"
+              className={`absolute right-2 bottom-2 w-7 h-7 flex items-center justify-center disabled:bg-gray-300 disabled:text-g-muted text-white rounded-md text-sm font-semibold transition-colors ${imageMode ? 'bg-purple-600 hover:bg-purple-700' : 'bg-black hover:bg-gray-800'}`}
+            >
+              {'\u2191'}
+            </button>
+          )}
         </div>
-      <PromptEditorDialog isOpen={showPromptManager} onClose={() => setShowPromptManager(false)} />
+        {editingMessageId && (
+          <div className="mt-1 min-h-[14px]">
+            <span className="text-[10px] text-purple-600 font-medium">
+              Editing message • <button onClick={() => { setEditingMessageId(null); setInput(''); }} className="underline hover:text-purple-800">Cancel</button>
+            </span>
+          </div>
+        )}
       </div>
+      <PromptEditorDialog isOpen={showPromptManager} onClose={() => setShowPromptManager(false)} />
+    </div >
   );
 }
 

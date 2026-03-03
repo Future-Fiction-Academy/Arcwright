@@ -195,6 +195,87 @@ export function exportBeatSheetMarkdown(beatSheet, summaryCard) {
 }
 
 /**
+ * Generate scene stub objects from a beat sheet.
+ * Creates ~scenesPerBeat stubs per beat (default 3), each with markdown content
+ * containing beat context, dimension targets, and writing guidance.
+ *
+ * Returns [{ filename, content, beatId, beatLabel, time, sceneNumber, scenesInBeat }]
+ */
+export function generateSceneStubs(beatSheet, summaryCard, { scenesPerBeat = 3 } = {}) {
+  const stubs = [];
+  let globalSceneNum = 1;
+
+  beatSheet.forEach((entry, beatIndex) => {
+    const paddedBeat = String(beatIndex + 1).padStart(2, '0');
+    const safeBeatName = (entry.beat || entry.label || 'beat')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+
+    for (let s = 1; s <= scenesPerBeat; s++) {
+      const filename = `scene-${String(globalSceneNum).padStart(3, '0')}-${safeBeatName}-${s}.md`;
+
+      let md = `# Scene ${globalSceneNum}: ${entry.label} (${s}/${scenesPerBeat})\n\n`;
+      md += `**Beat:** ${entry.label} (${entry.time}%)\n\n`;
+      md += `**Tension Target:** ${entry.tension.toFixed(1)}/10\n\n`;
+      md += `**Story Position:** ${entry.time}% of narrative\n\n`;
+
+      // Dimension targets — as a bulleted list instead of a table
+      md += `## Dimension Targets\n\n`;
+      DIMENSION_KEYS.forEach((key) => {
+        md += `- **${dimensions[key].name}:** ${(entry.dimensions[key] ?? 0).toFixed(1)}\n`;
+      });
+      md += '\n';
+
+      // Top drivers
+      md += `**Top Tension Drivers:** ${entry.tensionDrivers.map((d) => `${d.name} (${d.value.toFixed(1)})`).join(', ')}\n\n`;
+
+      // Writing guidance
+      if (entry.guidance) {
+        md += `## Writing Guidance\n\n`;
+        md += `**Purpose:** ${entry.guidance.purpose}\n\n`;
+        md += `**Emotional Goal:** ${entry.guidance.emotionalGoal}\n\n`;
+
+        if (entry.guidance.establish?.length > 0) {
+          md += `**Establish:**\n`;
+          entry.guidance.establish.forEach((item) => { md += `- ${item}\n`; });
+          md += '\n';
+        }
+
+        if (entry.guidance.avoid?.length > 0) {
+          md += `**Avoid:**\n`;
+          entry.guidance.avoid.forEach((item) => { md += `- ${item}\n`; });
+          md += '\n';
+        }
+
+        if (entry.guidance.connectionToNext) {
+          md += `**Connection to Next:** ${entry.guidance.connectionToNext}\n\n`;
+        }
+      }
+
+      md += `---\n\n`;
+      md += `<!-- Write your scene below this line -->\n\n`;
+
+      stubs.push({
+        filename,
+        content: md,
+        beatId: entry.beat || safeBeatName,
+        beatLabel: entry.label,
+        time: entry.time,
+        sceneNumber: globalSceneNum,
+        sceneInBeat: s,
+        scenesInBeat: scenesPerBeat,
+      });
+
+      globalSceneNum++;
+    }
+  });
+
+  return stubs;
+}
+
+
+/**
  * Export beat sheet as standalone HTML.
  */
 export function exportBeatSheetHTML(beatSheet, summaryCard) {

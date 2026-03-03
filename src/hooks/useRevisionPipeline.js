@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import useEditorStore from '../store/useEditorStore';
 import useAppStore from '../store/useAppStore';
 import useProjectStore from '../store/useProjectStore';
+import useBookStore from '../store/useBookStore';
 import { callCompletion } from '../api/providerAdapter';
 import {
   buildRevisionSystemPrompt,
@@ -238,6 +239,30 @@ export default function useRevisionPipeline() {
 
       // 12. Save the completed rev file
       await useEditorStore.getState().saveTab(revPath);
+
+      // 13. Record revision in scene score history (feedback loop)
+      try {
+        const bookStore = useBookStore.getState();
+        if (bookStore.activeBookId && chapter) {
+          const scores = chapter.userScores || chapter.aiScores;
+          if (scores) {
+            // Find matching scene by file path
+            const matchingScene = bookStore.scenes.find((s) =>
+              s.file_path && fileEntry.path.includes(s.file_path)
+            );
+            if (matchingScene) {
+              bookStore.addAnalysisSnapshot({
+                sceneId: matchingScene.id,
+                scores: JSON.stringify(scores),
+                source: 'revision',
+              });
+              console.log(`[RevisionPipeline] Recorded revision snapshot for scene "${matchingScene.title}"`);
+            }
+          }
+        }
+      } catch (snapErr) {
+        console.warn('[RevisionPipeline] Failed to record revision snapshot:', snapErr);
+      }
 
       return revPath;
     },

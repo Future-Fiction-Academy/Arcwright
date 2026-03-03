@@ -17,7 +17,10 @@ function markdownToHtml(content) {
   if (!content) return '';
   // Already converted — contains HTML block elements
   if (/<(?:p|div|h[1-6]|ul|ol|blockquote)\b/i.test(content)) return content;
+
   let html = content;
+
+  // Inline formatting
   html = html.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
   html = html.replace(/\*(.+?)\*/g, '<i>$1</i>');
   html = html.replace(/~~(.+?)~~/g, '<s>$1</s>');
@@ -28,14 +31,74 @@ function markdownToHtml(content) {
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
   html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:6px;margin:8px 0;" />');
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
-  const blocks = html.split(/\n\n+/);
-  html = blocks.map((b) => {
-    const t = b.trim();
-    if (!t) return '';
-    if (/^<(?:h[1-6]|hr|ul|ol|blockquote|div|p)\b/i.test(t)) return t;
-    return '<p>' + t.replace(/\n/g, '<br>') + '</p>';
-  }).join('');
-  return html || '<p><br></p>';
+
+  // Split into lines and process blocks (lists, blockquotes, paragraphs)
+  const lines = html.split('\n');
+  const outputBlocks = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Skip empty lines
+    if (!line.trim()) { i++; continue; }
+
+    // Already an HTML block element — pass through
+    if (/^<(?:h[1-6]|hr|ul|ol|blockquote|div|p)\b/i.test(line.trim())) {
+      outputBlocks.push(line);
+      i++;
+      continue;
+    }
+
+    // Unordered list: consecutive lines starting with - or *
+    if (/^[-*]\s+/.test(line.trim())) {
+      let listHtml = '<ul>';
+      while (i < lines.length && /^[-*]\s+/.test(lines[i].trim())) {
+        listHtml += '<li>' + lines[i].trim().replace(/^[-*]\s+/, '') + '</li>';
+        i++;
+      }
+      listHtml += '</ul>';
+      outputBlocks.push(listHtml);
+      continue;
+    }
+
+    // Ordered list: consecutive lines starting with a number followed by . or )
+    if (/^\d+[.)]\s+/.test(line.trim())) {
+      let listHtml = '<ol>';
+      while (i < lines.length && /^\d+[.)]\s+/.test(lines[i].trim())) {
+        listHtml += '<li>' + lines[i].trim().replace(/^\d+[.)]\s+/, '') + '</li>';
+        i++;
+      }
+      listHtml += '</ol>';
+      outputBlocks.push(listHtml);
+      continue;
+    }
+
+    // Blockquote: consecutive lines starting with >
+    if (/^>\s*/.test(line.trim())) {
+      let bqContent = '';
+      while (i < lines.length && /^>\s*/.test(lines[i].trim())) {
+        bqContent += lines[i].trim().replace(/^>\s*/, '') + '<br>';
+        i++;
+      }
+      outputBlocks.push('<blockquote>' + bqContent + '</blockquote>');
+      continue;
+    }
+
+    // Regular paragraph — collect consecutive non-special lines
+    let para = '';
+    while (i < lines.length && lines[i].trim() &&
+      !/^[-*]\s+/.test(lines[i].trim()) &&
+      !/^\d+[.)]\s+/.test(lines[i].trim()) &&
+      !/^>\s*/.test(lines[i].trim()) &&
+      !/^<(?:h[1-6]|hr|ul|ol|blockquote|div|p)\b/i.test(lines[i].trim())) {
+      para += (para ? '<br>' : '') + lines[i];
+      i++;
+    }
+    if (para) outputBlocks.push('<p>' + para + '</p>');
+  }
+
+  return outputBlocks.join('') || '<p><br></p>';
 }
 
 const TOOLBAR_ITEMS = [

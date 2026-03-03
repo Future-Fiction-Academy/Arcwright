@@ -11,6 +11,7 @@ import useSequenceStore from './store/useSequenceStore';
 import { PROVIDERS, PROVIDER_ORDER } from './api/providers';
 import { fetchModels } from './api/providerAdapter';
 import { loadHandle } from './services/idbHandleStore';
+import { initDatabase } from './services/database';
 import { getTheme } from './components/edit/editorThemes';
 import { genreSystem, genreDimensionRanges } from './data/genreSystem';
 import { plotStructures, allStructures } from './data/plotStructures';
@@ -19,10 +20,11 @@ import { plotStructures, allStructures } from './data/plotStructures';
 // Set at build time. After this date the app shows an expiration screen.
 const TRIAL_EXPIRES = new Date('2026-04-20T00:00:00Z').getTime(); // 2 months from today
 
-const ScaffoldingWorkflow = lazy(() => import('./components/scaffolding/ScaffoldingWorkflow'));
+const ScaffoldingWorkflow = lazy(() => import('./components/scaffolding/ScaffoldingWorkflow_v2'));
 const AnalysisWorkflow = lazy(() => import('./components/analysis/AnalysisWorkflow'));
-const EditWorkflow = lazy(() => import('./components/edit/EditWorkflow'));
+const EditWorkflow = lazy(() => import('./components/edit/EditWorkflow_v2'));
 const HelpPage = lazy(() => import('./components/layout/HelpPage'));
+const ProjectDashboard = lazy(() => import('./components/projects/ProjectDashboard'));
 
 function Loading() {
   return (
@@ -104,8 +106,11 @@ export default function App() {
   // Trial expiration check
   if (Date.now() > TRIAL_EXPIRES) return <TrialExpired />;
 
-  // Restore .arcwrite/ system folder from IndexedDB on startup
+  // Initialize database and restore Arcwrite FS from IndexedDB on startup
   useEffect(() => {
+    // Init SQLite database (from IndexedDB) — independent of Arcwrite FS
+    initDatabase().catch((err) => console.warn('[App] Database init failed:', err));
+
     useProjectStore.getState().restoreFromIDB().then(async (restored) => {
       if (restored) {
         console.log('[App] Restored .arcwrite/ from IndexedDB');
@@ -310,6 +315,7 @@ export default function App() {
             <Route path="analyze" element={<AnalysisWorkflow />} />
             <Route path="edit" element={<EditWorkflow />} />
             <Route path="help" element={<HelpPage />} />
+            <Route path="dashboard" element={<ProjectDashboard />} />
           </Route>
         </Routes>
       </Suspense>

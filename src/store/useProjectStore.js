@@ -13,8 +13,10 @@ import {
   provisionArtifacts, walkArtifactsTree, readArtifactFile as fsReadArtifactFile,
   listExtensionPacks, loadPackContent,
 } from '../services/arcwriteFS';
+import { setArcwriteHandle as dbSetArcwriteHandle } from '../services/database';
 import useAppStore from './useAppStore';
 import useEditorStore from './useEditorStore';
+import useBookStore from './useBookStore';
 
 /**
  * Central project system store.
@@ -85,6 +87,9 @@ const useProjectStore = create((set, get) => ({
     await saveHandle('rootDir', arcwriteHandle);
     set({ arcwriteHandle, isInitialized: true, needsReconnect: false, settings });
 
+    // Register handle with database for FS backups
+    dbSetArcwriteHandle(arcwriteHandle);
+
     // Migrate settings from localStorage if this is first setup
     await get().migrateFromLocalStorage();
 
@@ -121,6 +126,9 @@ const useProjectStore = create((set, get) => ({
         await ensureDir(arcwriteHandle, 'projects', 'ai');
         const settings = await readSettings(arcwriteHandle);
         set({ arcwriteHandle, isInitialized: true, needsReconnect: false, settings });
+
+        // Register handle with database for FS backups
+        dbSetArcwriteHandle(arcwriteHandle);
 
         if (settings) {
           useAppStore.getState().syncFromProjectSettings(settings);
@@ -326,6 +334,13 @@ const useProjectStore = create((set, get) => ({
       useEditorStore.getState().setFileTree(rawTree);
     }
 
+    // Load book entity data from SQLite
+    try {
+      await useBookStore.getState().loadBookByTitle(projectName);
+    } catch (err) {
+      console.warn('[ProjectStore] Failed to load book data:', err.message);
+    }
+
     set({
       activeBookProject: projectName,
       activeAiProject: null,
@@ -377,7 +392,7 @@ const useProjectStore = create((set, get) => ({
           f.includeMode === 'reference' ? { ...f, cachedContent: null } : f
         ),
       };
-      fsSaveAiProject(arcwriteHandle, { ...activeProject, updatedAt: Date.now() }).catch(() => {});
+      fsSaveAiProject(arcwriteHandle, { ...activeProject, updatedAt: Date.now() }).catch(() => { });
     }
 
     set({
@@ -433,6 +448,7 @@ const useProjectStore = create((set, get) => ({
     await get().saveCurrentChatHistory();
     const { default: useChatStore } = await import('./useChatStore');
     useChatStore.getState().clearMessages();
+    useBookStore.getState().clearBook();
     set({
       activeBookProject: null,
       activeAiProject: null,
@@ -484,6 +500,18 @@ const useProjectStore = create((set, get) => ({
     const { arcwriteHandle } = get();
     if (!arcwriteHandle) return;
     await fsCreateBookProject(arcwriteHandle, name);
+
+    // Create a book record in SQLite
+    try {
+      const { insertBook, getBookByTitle } = await import('../services/database');
+      const existing = getBookByTitle(name);
+      if (!existing) {
+        insertBook({ title: name });
+      }
+    } catch (err) {
+      console.warn('[ProjectStore] Failed to create book record:', err.message);
+    }
+
     await get().loadProjects();
   },
 

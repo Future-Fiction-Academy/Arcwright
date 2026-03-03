@@ -9,7 +9,7 @@ import { blendWeights, blendRequirements } from '../../engine/blending';
 import { generateSummaryCard, generateBeatSheet } from '../../engine/scaffoldOutput';
 import SummaryCard from './SummaryCard';
 import BeatSheetView from './BeatSheetView';
-import WritingGuideExporter from './WritingGuideExporter';
+import WritingGuideExporter from './WritingGuideExporter_v3';
 import PacingClassifierBadge from '../shared/PacingClassifierBadge';
 
 export default function ScaffoldOutput() {
@@ -58,18 +58,18 @@ export default function ScaffoldOutput() {
 
   const blendMeta = blendEnabled && secondaryGenre && secondarySubgenre
     ? {
-        secondaryGenre: genreSystem[secondaryGenre]?.name || secondaryGenre,
-        secondarySubgenre: genreSystem[secondaryGenre]?.subgenres[secondarySubgenre]?.name || secondarySubgenre,
-        blendRatio,
-      }
+      secondaryGenre: genreSystem[secondaryGenre]?.name || secondaryGenre,
+      secondarySubgenre: genreSystem[secondaryGenre]?.subgenres[secondarySubgenre]?.name || secondarySubgenre,
+      blendRatio,
+    }
     : null;
 
   const summaryCard = useMemo(
     () => enrichedData.length > 0
       ? generateSummaryCard(enrichedData, {
-          selectedGenre, selectedSubgenre, selectedModifier, selectedPacing,
-          structureKey, validation, blendMeta,
-        })
+        selectedGenre, selectedSubgenre, selectedModifier, selectedPacing,
+        structureKey, validation, blendMeta,
+      })
       : null,
     [enrichedData, selectedGenre, selectedSubgenre, selectedModifier, selectedPacing, structureKey, validation, blendMeta]
   );

@@ -663,3 +663,95 @@ export const referenceStructures = [
     ],
   },
 ];
+
+// ---------------------------------------------------------------------------
+// Series-Level Structures (macro arcs where each beat = a book)
+// ---------------------------------------------------------------------------
+
+export const seriesStructures = {
+  trilogySeries: {
+    name: 'Trilogy Arc',
+    description: 'Classic three-book series arc. Each book maps to a macro act: setup, confrontation, resolution. The series-level arc mirrors a three-act structure at the macro scale.',
+    seriesType: 'protagonist_terminating',
+    acts: [
+      { name: 'Book 1: Foundation', range: [0, 33], beats: ['seriesSetup', 'worldBuilding', 'firstArc'] },
+      { name: 'Book 2: Expansion', range: [33, 66], beats: ['deeperConflict', 'midpointShift', 'raisingStakes'] },
+      { name: 'Book 3: Resolution', range: [66, 100], beats: ['finalConflict', 'climax', 'seriesResolution'] },
+    ],
+    beats: {
+      seriesSetup: { name: 'Series Setup', range: [0, 10], color: '#60a5fa' },
+      worldBuilding: { name: 'World Establishment', range: [10, 20], color: '#818cf8' },
+      firstArc: { name: 'First Arc Resolution', range: [20, 33], color: '#c084fc' },
+      deeperConflict: { name: 'Deeper Conflict', range: [33, 45], color: '#4ade80' },
+      midpointShift: { name: 'Series Midpoint Shift', range: [45, 55], color: '#fb923c' },
+      raisingStakes: { name: 'Raising Stakes', range: [55, 66], color: '#b91c1c' },
+      finalConflict: { name: 'Final Conflict Setup', range: [66, 78], color: '#f87171' },
+      climax: { name: 'Series Climax', range: [78, 90], color: '#9333ea' },
+      seriesResolution: { name: 'Series Resolution', range: [90, 100], color: '#86efac' },
+    },
+  },
+  sagaSeries: {
+    name: 'Saga Arc (5–7 Books)',
+    description: 'Extended series arc for 5–7 book sagas. Three macro acts with expanded middle section. Models sagas like Star Wars, Harry Potter, or Wheel of Time.',
+    seriesType: 'protagonist_terminating',
+    acts: [
+      { name: 'Phase I: Foundation (Books 1–2)', range: [0, 28], beats: ['sagaSetup', 'worldExpansion'] },
+      { name: 'Phase II: Escalation (Books 3–5)', range: [28, 72], beats: ['risingThreat', 'sagaMidpoint', 'darkTurn', 'alliance'] },
+      { name: 'Phase III: Reckoning (Books 6–7)', range: [72, 100], beats: ['gathering', 'sagaClimax', 'sagaResolution'] },
+    ],
+    beats: {
+      sagaSetup: { name: 'Saga Setup', range: [0, 14], color: '#60a5fa' },
+      worldExpansion: { name: 'World Expansion', range: [14, 28], color: '#818cf8' },
+      risingThreat: { name: 'Rising Threat', range: [28, 40], color: '#4ade80' },
+      sagaMidpoint: { name: 'Saga Midpoint', range: [40, 50], color: '#fb923c' },
+      darkTurn: { name: 'Dark Turn', range: [50, 60], color: '#b91c1c' },
+      alliance: { name: 'Alliance/Gathering', range: [60, 72], color: '#c084fc' },
+      gathering: { name: 'Final Gathering', range: [72, 82], color: '#f87171' },
+      sagaClimax: { name: 'Saga Climax', range: [82, 92], color: '#9333ea' },
+      sagaResolution: { name: 'Saga Resolution', range: [92, 100], color: '#86efac' },
+    },
+  },
+  continuingSeries: {
+    name: 'Continuing Series Arc',
+    description: 'Open-ended series managed at the book level. Each book is a standalone arc with recurring protagonist(s). No predetermined series endpoint. Models series like Reacher, Bosch, or cozy mysteries.',
+    seriesType: 'protagonist_continuing',
+    acts: [
+      { name: 'Early Books', range: [0, 30], beats: ['establish', 'deepen'] },
+      { name: 'Middle Run', range: [30, 70], beats: ['evolve', 'status_quo'] },
+      { name: 'Late Series', range: [70, 100], beats: ['mature', 'legacy'] },
+    ],
+    beats: {
+      establish: { name: 'Establish World & Cast', range: [0, 15], color: '#60a5fa' },
+      deepen: { name: 'Deepen Relationships', range: [15, 30], color: '#818cf8' },
+      evolve: { name: 'Character Evolution', range: [30, 50], color: '#4ade80' },
+      status_quo: { name: 'Status Quo Challenges', range: [50, 70], color: '#fb923c' },
+      mature: { name: 'Mature Themes', range: [70, 85], color: '#c084fc' },
+      legacy: { name: 'Legacy & Reflection', range: [85, 100], color: '#86efac' },
+    },
+  },
+  commonWorldSeries: {
+    name: 'Common World Series',
+    description: 'Shared-world series with different protagonists per book. Common in romance, urban fantasy, and small-town settings. Characters from earlier books appear as secondary characters.',
+    seriesType: 'common_world',
+    acts: [
+      { name: 'World Introduction', range: [0, 25], beats: ['worldSetup', 'firstCouple'] },
+      { name: 'World Expansion', range: [25, 75], beats: ['newProtags', 'crossover', 'deeperWorld'] },
+      { name: 'World Culmination', range: [75, 100], beats: ['convergence', 'worldResolution'] },
+    ],
+    beats: {
+      worldSetup: { name: 'World Setup', range: [0, 12], color: '#60a5fa' },
+      firstCouple: { name: 'First Story (World Introduction)', range: [12, 25], color: '#db2777' },
+      newProtags: { name: 'New Protagonists', range: [25, 45], color: '#4ade80' },
+      crossover: { name: 'Character Crossover', range: [45, 55], color: '#c084fc' },
+      deeperWorld: { name: 'Deeper World Layers', range: [55, 75], color: '#fb923c' },
+      convergence: { name: 'Character Convergence', range: [75, 90], color: '#f87171' },
+      worldResolution: { name: 'World Resolution', range: [90, 100], color: '#86efac' },
+    },
+  },
+};
+
+export const seriesStructureGroups = {
+  terminating: ['trilogySeries', 'sagaSeries'],
+  continuing: ['continuingSeries'],
+  commonWorld: ['commonWorldSeries'],
+};

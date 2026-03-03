@@ -419,7 +419,6 @@ function InterfaceGuideTab() {
                 <ControlRow name="&ldquo;tools&rdquo; Badge + AI Label">Small green &ldquo;tools&rdquo; badge visible in Full Context mode when native tools are enabled. When tools are active the &ldquo;AI&rdquo; label at the top-left also turns green. The AI can call tools to modify app state (beats, genres, scores).</ControlRow>
                 <ControlRow name="Mode Button">Toggle button. When active (black background), an expandable panel shows the exact system prompt being sent to the AI. Use this to inspect what context the AI receives.</ControlRow>
                 <ControlRow name="Prompts Button">Opens the Prompt Manager where you can create, edit, and delete saved prompt templates. Templates are stored as <code className="text-purple-200 bg-slate-700/50 px-1 rounded">.md</code> files in the <code className="text-purple-200 bg-slate-700/50 px-1 rounded">Arcwrite/prompts/</code> folder and are also accessible via the <Kbd>/</Kbd> slash menu in the chat input.</ControlRow>
-                <ControlRow name="Files Button">Toggle button. When active, shows a file tree panel listing files loaded from the open folder. Only visible when files are loaded. Files listed here are available as AI context.</ControlRow>
                 <ControlRow name="New Chat Button">Document-with-plus icon. Clears all messages and starts a fresh conversation. Shows a confirmation dialog before clearing.</ControlRow>
               </div>
             </Section>
@@ -1894,6 +1893,29 @@ function ChangelogTab() {
       <Section title="Changelog">
         <div className="space-y-6">
           <div>
+            <div className="flex items-center gap-3 mb-2">
+              <span className="bg-emerald-600 text-white text-xs px-2 py-0.5 rounded font-mono">v3.0.1</span>
+              <span className="text-purple-300 text-xs">2026-03-02</span>
+            </div>
+            <h4 className="font-bold text-white mb-2">Bug Fixes &mdash; Chat Panel, Projects Dialog, Scene Stubs, Database Resilience</h4>
+            <div className="space-y-3">
+              <div>
+                <h5 className="font-semibold text-purple-300 text-xs uppercase tracking-wider mb-1">Fixed</h5>
+                <ul className="list-disc list-inside text-xs text-purple-200 space-y-0.5">
+                  <li><strong>Projects dialog OK button</strong> &mdash; Clicking OK on the Book Projects tab no longer hangs when the SQLite database fails to initialize</li>
+                  <li><strong>Database initialization resilience</strong> &mdash; <code className="text-purple-200 bg-slate-700/50 px-1 rounded">initDatabase()</code> now catches WASM loading failures so <code className="text-purple-200 bg-slate-700/50 px-1 rounded">waitForDb()</code> resolves with null instead of hanging forever</li>
+                  <li><strong>Chat panel header layout</strong> &mdash; Mode and Prompts buttons were clipped in narrow sidebars; header now uses flex-wrap so items wrap to a second row</li>
+                  <li><strong>Book project name in AI dropdown</strong> &mdash; The purple project badge was incorrectly showing book project names; now shows &ldquo;Full Context&rdquo; when a book project is active</li>
+                  <li><strong>Redundant Files button removed</strong> &mdash; Removed duplicate Files button from chat panel header; top tab bar already provides file access</li>
+                  <li><strong>Scene stub rendering</strong> &mdash; Enhanced markdown-to-HTML converter to support unordered lists, ordered lists, and blockquotes</li>
+                  <li><strong>Create Scene Stubs disabled state</strong> &mdash; Button is grayed out with tooltip when no book folder is open</li>
+                  <li><strong>Character arcs database race condition</strong> &mdash; <code className="text-purple-200 bg-slate-700/50 px-1 rounded">loadBookByTitle</code> now awaits database readiness before querying</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-purple-500/20 pt-4">
             <div className="flex items-center gap-3 mb-2">
               <span className="bg-emerald-600 text-white text-xs px-2 py-0.5 rounded font-mono">v3.0.0</span>
               <span className="text-purple-300 text-xs">2026-03-02</span>
